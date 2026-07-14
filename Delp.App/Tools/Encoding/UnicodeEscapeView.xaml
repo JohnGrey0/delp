@@ -1,0 +1,57 @@
+<UserControl x:Class="Delp.App.Tools.Encoding.UnicodeEscapeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+            <CheckBox x:Name="NonAsciiOnlyBox"
+                      Content="Escape non-ASCII only"
+                      IsChecked="True"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                <Button x:Name="CopyPlainBtn"
+                        DockPanel.Dock="Right"
+                        Content="Copy"
+                        Click="CopyPlain_Click" />
+                <TextBlock VerticalAlignment="Center"
+                           Style="{StaticResource Text.Section}"
+                           Text="TEXT" />
+            </DockPanel>
+            <TextBox x:Name="PlainBox"
+                     Grid.Row="1"
+                     Style="{StaticResource TextBox.Mono}"
+                     TextChanged="PlainBox_TextChanged" />
+
+            <DockPanel Grid.Row="2" Margin="0,14,0,6">
+                <Button x:Name="CopyEscapedBtn"
+                        DockPanel.Dock="Right"
+                        Content="Copy"
+                        Click="CopyEscaped_Click" />
+                <TextBlock VerticalAlignment="Center"
+                           Style="{StaticResource Text.Section}"
+                           Text="ESCAPED" />
+            </DockPanel>
+            <TextBox x:Name="EscapedBox"
+                     Grid.Row="3"
+                     Style="{StaticResource TextBox.Mono}"
+                     TextChanged="EscapedBox_TextChanged" />
+        </Grid>
+    </DockPanel>
+</UserControl>
