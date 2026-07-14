@@ -1,0 +1,82 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.CronParseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource Text.Section}" Text="CRON EXPRESSION" Margin="0,0,0,4" />
+            <TextBox x:Name="ExpressionBox"
+                     Style="{StaticResource TextBox.Mono}"
+                     AcceptsReturn="False"
+                     Text="*/15 9-17 * * 1-5"
+                     TextChanged="Input_Changed" />
+            <TextBlock Style="{StaticResource Text.Sub}"
+                       Text="5-field standard cron; a 6th leading field means seconds (Quartz-style)."
+                       Margin="0,4,0,10"
+                       TextWrapping="Wrap" />
+            <TextBlock x:Name="HumanText"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource Brush.Accent}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,14" />
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Text.Section}" Text="FIELDS" Margin="0,0,0,6" />
+                <ItemsControl x:Name="FieldsList" Margin="0,0,0,16">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Padding="10,7" Margin="0,0,0,4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Field}" Foreground="{StaticResource Brush.Fg1}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Value}"
+                                               FontFamily="{StaticResource Font.Mono}"
+                                               Foreground="{StaticResource Brush.Fg0}" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Meaning}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource Brush.Fg2}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="NEXT 10 RUNS" Margin="0,0,0,6" />
+                <ItemsControl x:Name="NextRunsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Padding="10,7" Margin="0,0,0,4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding When}"
+                                               FontFamily="{StaticResource Font.Mono}"
+                                               Foreground="{StaticResource Brush.Fg0}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Relative}" Foreground="{StaticResource Brush.Fg2}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

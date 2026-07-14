@@ -1,0 +1,88 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.QrCodeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <StackPanel DockPanel.Dock="Top">
+            <TabControl x:Name="SourceTabs" SelectionChanged="Source_Changed">
+                <TabItem Header="TEXT / URL">
+                    <TextBox x:Name="ContentBox"
+                             Style="{StaticResource TextBox.Mono}"
+                             MinHeight="90"
+                             TextWrapping="Wrap"
+                             TextChanged="Input_Changed" />
+                </TabItem>
+                <TabItem Header="WI-FI">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Text.Section}" Text="SSID" Margin="0,0,0,4" />
+                        <TextBox x:Name="SsidBox" Margin="0,0,0,10" TextChanged="Input_Changed" />
+                        <TextBlock Style="{StaticResource Text.Section}" Text="PASSWORD" Margin="0,0,0,4" />
+                        <TextBox x:Name="PasswordBox" Margin="0,0,0,10" TextChanged="Input_Changed" />
+                        <WrapPanel>
+                            <StackPanel Margin="0,0,16,8">
+                                <TextBlock Style="{StaticResource Text.Section}" Text="SECURITY" Margin="0,0,0,4" />
+                                <ComboBox x:Name="AuthCombo" MinWidth="120" SelectionChanged="Input_Changed">
+                                    <ComboBoxItem Content="WPA/WPA2" Tag="Wpa" />
+                                    <ComboBoxItem Content="WEP" Tag="Wep" />
+                                    <ComboBoxItem Content="None (open)" Tag="None" />
+                                </ComboBox>
+                            </StackPanel>
+                            <CheckBox x:Name="HiddenBox"
+                                      Content="Hidden network"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,8"
+                                      Checked="Input_Changed"
+                                      Unchecked="Input_Changed" />
+                        </WrapPanel>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+
+            <WrapPanel Margin="0,12,0,0">
+                <StackPanel Margin="0,0,16,8">
+                    <TextBlock Style="{StaticResource Text.Section}" Text="ERROR CORRECTION" Margin="0,0,0,4" />
+                    <ComboBox x:Name="EccCombo" MinWidth="90" SelectionChanged="Input_Changed">
+                        <ComboBoxItem Content="L" Tag="L" />
+                        <ComboBoxItem Content="M" Tag="M" />
+                        <ComboBoxItem Content="Q" Tag="Q" />
+                        <ComboBoxItem Content="H" Tag="H" />
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Margin="0,0,16,8">
+                    <TextBlock Style="{StaticResource Text.Section}" Text="SIZE" Margin="0,0,0,4" />
+                    <ComboBox x:Name="SizeCombo" MinWidth="90" SelectionChanged="Input_Changed">
+                        <ComboBoxItem Content="Small" Tag="6" />
+                        <ComboBoxItem Content="Medium" Tag="10" />
+                        <ComboBoxItem Content="Large" Tag="16" />
+                    </ComboBox>
+                </StackPanel>
+            </WrapPanel>
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,16,0,0">
+                <Border Background="White"
+                        CornerRadius="8"
+                        Padding="12"
+                        HorizontalAlignment="Center">
+                    <Image x:Name="QrImage"
+                           Width="220"
+                           Height="220"
+                           Stretch="Uniform"
+                           SnapsToDevicePixels="True"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                </Border>
+                <WrapPanel HorizontalAlignment="Center" Margin="0,10,0,0">
+                    <Button x:Name="SaveBtn" Content="Save PNG…" Margin="0,0,8,0" Click="Save_Click" />
+                    <Button x:Name="CopyImageBtn" Content="Copy image" Click="CopyImage_Click" />
+                </WrapPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
