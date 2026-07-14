@@ -141,6 +141,19 @@ public class MockDataToolTests
     }
 
     [Fact]
+    public void Generate_RowsExceedingMaximum_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => MockDataTool.Generate(PersonFields, MockDataTool.MaxRows + 1, seed: 1));
+    }
+
+    [Fact]
+    public void Generate_RowsAtMaximum_Succeeds()
+    {
+        var rows = MockDataTool.Generate(PersonFields, MockDataTool.MaxRows, seed: 1);
+        Assert.Equal(MockDataTool.MaxRows, rows.Count);
+    }
+
+    [Fact]
     public void ToJson_ProducesPrettyArrayOfRows()
     {
         var rows = MockDataTool.Generate(new[] { new FieldSpec("id", FieldKind.IntRange, "1..1") }, 2, seed: 3);
@@ -180,6 +193,30 @@ public class MockDataToolTests
         var rows = new List<Dictionary<string, object?>> { new() { ["x"] = null } };
         var sql = MockDataTool.ToSqlInserts(rows, "t");
         Assert.Contains("VALUES (NULL)", sql);
+    }
+
+    [Fact]
+    public void ToSqlInserts_EmbeddedNewlineAndQuote_StaysASingleValidStatement()
+    {
+        var rows = new List<Dictionary<string, object?>>
+        {
+            new() { ["note"] = "line one\nline two's end" },
+        };
+        var sql = MockDataTool.ToSqlInserts(rows, "notes");
+
+        Assert.Single(Regex.Matches(sql, "INSERT INTO"));
+        Assert.Contains("'line one\nline two''s end'", sql);
+    }
+
+    [Fact]
+    public void ToCsv_EmbeddedNewline_QuotesTheWholeField()
+    {
+        var rows = new List<Dictionary<string, object?>>
+        {
+            new() { ["note"] = "line one\nline two" },
+        };
+        var csv = MockDataTool.ToCsv(rows);
+        Assert.Contains("\"line one\nline two\"", csv);
     }
 
     [Theory]

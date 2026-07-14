@@ -17,6 +17,7 @@ public partial class MockDataView : UserControl
     private readonly List<(TextBox NameBox, ComboBox KindBox, TextBox OptionsBox, Grid Row)> _rows = new();
     private readonly ICSharpCode.AvalonEdit.TextEditor _outputEditor;
     private readonly IHighlightingDefinition? _jsonHighlighting;
+    private bool _generating;
 
     public MockDataView()
     {
@@ -86,27 +87,55 @@ public partial class MockDataView : UserControl
 
     private void Format_Changed(object sender, RoutedEventArgs e)
     {
-        if (TableNameRow is not null)
+        // Guard against the RadioButtons' default-checked state firing this
+        // handler mid-InitializeComponent, before TableNameRow (declared later
+        // in the XAML) has been connected — matches the guard used by every
+        // other live-update handler in this batch.
+        if (IsLoaded)
             TableNameRow.Visibility = SelectedFormat == "SQL" ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void Generate_Click(object sender, RoutedEventArgs e)
+    private async void Generate_Click(object sender, RoutedEventArgs e)
     {
+        if (_generating)
+            return;
+
+        List<FieldSpec> fields;
+        int rows;
+        int? seed;
+        string format;
+        string table;
         try
         {
-            var fields = ReadFields();
-            var rows = ParseInt(RowCountBox.Text, "Row count");
-            int? seed = string.IsNullOrWhiteSpace(SeedBox.Text) ? null : ParseInt(SeedBox.Text, "Seed");
+            fields = ReadFields();
+            rows = ParseRowCount(RowCountBox.Text);
+            seed = string.IsNullOrWhiteSpace(SeedBox.Text) ? null : ParseInt(SeedBox.Text, "Seed");
+            format = SelectedFormat;
+            table = string.IsNullOrWhiteSpace(TableNameBox.Text) ? "mock_data" : TableNameBox.Text.Trim();
+        }
+        catch (Exception ex)
+        {
+            ErrorText.Text = ex.Message;
+            ErrorText.Visibility = Visibility.Visible;
+            return;
+        }
 
+        _generating = true;
+        GenerateBtn.IsEnabled = false;
+        GenerateBtn.Content = "Generating…";
+        try
+        {
             var sw = Stopwatch.StartNew();
-            var data = MockDataTool.Generate(fields, rows, seed);
-            var format = SelectedFormat;
-            var output = format switch
+            var output = await Task.Run(() =>
             {
-                "CSV" => MockDataTool.ToCsv(data),
-                "SQL" => MockDataTool.ToSqlInserts(data, string.IsNullOrWhiteSpace(TableNameBox.Text) ? "mock_data" : TableNameBox.Text.Trim()),
-                _ => MockDataTool.ToJson(data),
-            };
+                var data = MockDataTool.Generate(fields, rows, seed);
+                return format switch
+                {
+                    "CSV" => MockDataTool.ToCsv(data),
+                    "SQL" => MockDataTool.ToSqlInserts(data, table),
+                    _ => MockDataTool.ToJson(data),
+                };
+            });
             sw.Stop();
 
             _outputEditor.SyntaxHighlighting = format == "JSON" ? _jsonHighlighting : null;
@@ -118,6 +147,12 @@ public partial class MockDataView : UserControl
         {
             ErrorText.Text = ex.Message;
             ErrorText.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _generating = false;
+            GenerateBtn.IsEnabled = true;
+            GenerateBtn.Content = "Generate";
         }
     }
 
@@ -150,6 +185,14 @@ public partial class MockDataView : UserControl
         if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) || value < 0)
             throw new FormatException($"{field} must be a non-negative whole number.");
         return value;
+    }
+
+    private static int ParseRowCount(string text)
+    {
+        var rows = ParseInt(text, "Row count");
+        if (rows > MockDataTool.MaxRows)
+            throw new FormatException($"Row count must be at most {MockDataTool.MaxRows.ToString(CultureInfo.InvariantCulture)}.");
+        return rows;
     }
 
     private void Copy_Click(object sender, RoutedEventArgs e) => Ui.Copy(_outputEditor.Text, CopyBtn);

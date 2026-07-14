@@ -7,7 +7,7 @@ using Delp.Core.Tools.DataFormat;
 
 namespace Delp.App.Tools.DataFormat;
 
-[Tool("json-types", "JSON to C# / TypeScript Types", ToolCategory.DataFormat,
+[Tool("json-types", "JSON → C# / TypeScript Types", ToolCategory.DataFormat,
     "Infer a merged schema from JSON and generate idiomatic C# records or TypeScript interfaces.",
     Keywords = "json,csharp,typescript,types,quicktype,codegen", Order = 110)]
 public partial class JsonTypesView : UserControl
@@ -19,6 +19,7 @@ public partial class JsonTypesView : UserControl
     private readonly ICSharpCode.AvalonEdit.TextEditor _csEditor;
     private readonly ICSharpCode.AvalonEdit.TextEditor _tsEditor;
     private readonly DispatcherTimer _debounce;
+    private (string Text, string RootName, bool Records, bool JsonPropertyNames, bool Interfaces)? _lastRun;
 
     public JsonTypesView()
     {
@@ -67,13 +68,25 @@ public partial class JsonTypesView : UserControl
 
     private void Run()
     {
+        var rootName = string.IsNullOrWhiteSpace(RootNameBox.Text) ? "Root" : RootNameBox.Text.Trim();
+        var records = RecordsBox.IsChecked == true;
+        var jsonPropertyNames = JsonPropertyNamesBox.IsChecked == true;
+        var interfaces = InterfacesBox.IsChecked == true;
+
+        // Skip recomputation when nothing that affects the output has changed
+        // (e.g. a debounce tick with no new keystrokes, or toggling back to a
+        // prior option combination).
+        var signature = (_inputEditor.Text, rootName, records, jsonPropertyNames, interfaces);
+        if (signature == _lastRun)
+            return;
+        _lastRun = signature;
+
         try
         {
-            var rootName = string.IsNullOrWhiteSpace(RootNameBox.Text) ? "Root" : RootNameBox.Text.Trim();
             var schema = JsonTypesTool.Infer(_inputEditor.Text, rootName);
 
-            var csOptions = new CSharpOptions(RecordsBox.IsChecked == true, JsonPropertyNamesBox.IsChecked == true);
-            var tsOptions = new TsOptions(InterfacesBox.IsChecked == true);
+            var csOptions = new CSharpOptions(records, jsonPropertyNames);
+            var tsOptions = new TsOptions(interfaces);
 
             _csEditor.Text = JsonTypesTool.ToCSharp(schema, csOptions);
             _tsEditor.Text = JsonTypesTool.ToTypeScript(schema, tsOptions);

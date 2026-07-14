@@ -42,6 +42,10 @@ public sealed record FieldSpec(string Name, FieldKind Kind, string? Options = nu
 /// </summary>
 public static class MockDataTool
 {
+    /// <summary>Hard ceiling on requested rows so a typo (or a stray extra
+    /// zero) can't accidentally trigger a multi-million-row generation.</summary>
+    public const int MaxRows = 100_000;
+
     private static readonly string[] UrlTlds = { "com", "io", "dev", "net", "co", "app" };
     private const string PasswordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
 
@@ -49,6 +53,8 @@ public static class MockDataTool
     {
         if (rows < 0)
             throw new ArgumentException("Row count cannot be negative.", nameof(rows));
+        if (rows > MaxRows)
+            throw new ArgumentException($"Row count cannot exceed {MaxRows}.", nameof(rows));
         if (fields.Count == 0)
             throw new ArgumentException("Add at least one field.", nameof(fields));
 
@@ -82,9 +88,25 @@ public static class MockDataTool
 
         var columns = rows[0].Keys.ToList();
         var sb = new StringBuilder();
-        sb.AppendLine(string.Join(',', columns.Select(CsvField)));
+
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (i > 0)
+                sb.Append(',');
+            AppendCsvField(sb, columns[i]);
+        }
+        sb.AppendLine();
+
         foreach (var row in rows)
-            sb.AppendLine(string.Join(',', columns.Select(c => CsvField(Stringify(row[c])))));
+        {
+            for (var i = 0; i < columns.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(',');
+                AppendCsvField(sb, Stringify(row[columns[i]]));
+            }
+            sb.AppendLine();
+        }
 
         return sb.ToString().TrimEnd('\r', '\n');
     }
@@ -97,14 +119,25 @@ public static class MockDataTool
             throw new ArgumentException("Table name is required.", nameof(table));
 
         var columns = rows[0].Keys.ToList();
-        var columnList = string.Join(", ", columns.Select(c => $"\"{c}\""));
-        var sb = new StringBuilder();
+        var columnClause = new StringBuilder();
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (i > 0)
+                columnClause.Append(", ");
+            columnClause.Append('"').Append(columns[i]).Append('"');
+        }
 
+        var sb = new StringBuilder();
         foreach (var row in rows)
         {
-            var values = string.Join(", ", columns.Select(c => SqlLiteral(row[c])));
-            sb.Append("INSERT INTO ").Append(table).Append(" (").Append(columnList)
-              .Append(") VALUES (").Append(values).AppendLine(");");
+            sb.Append("INSERT INTO ").Append(table).Append(" (").Append(columnClause).Append(") VALUES (");
+            for (var i = 0; i < columns.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+                AppendSqlLiteral(sb, row[columns[i]]);
+            }
+            sb.AppendLine(");");
         }
 
         return sb.ToString().TrimEnd('\r', '\n');
@@ -131,7 +164,7 @@ public static class MockDataTool
         FieldKind.DecimalRange => MakeDecimalRange(field, rnd),
         FieldKind.DateBetween => MakeDateBetween(field, rnd),
         FieldKind.IsoDateTime => MakeIsoDateTime(rnd),
-        FieldKind.Ipv4 => $"{rnd.Next(1, 255)}.{rnd.Next(0, 256)}.{rnd.Next(0, 256)}.{rnd.Next(1, 255)}",
+        FieldKind.Ipv4 => FormattableString.Invariant($"{rnd.Next(1, 255)}.{rnd.Next(0, 256)}.{rnd.Next(0, 256)}.{rnd.Next(1, 255)}"),
         FieldKind.Url => MakeUrl(rnd),
         FieldKind.HexColor => $"#{rnd.Next(0, 0x1000000):X6}",
         FieldKind.LoremWords => MakeLoremWords(field, rnd),
@@ -140,10 +173,10 @@ public static class MockDataTool
     };
 
     private static string MakePhone(Random rnd) =>
-        $"({rnd.Next(200, 1000)}) {rnd.Next(200, 1000)}-{rnd.Next(1000, 10000)}";
+        FormattableString.Invariant($"({rnd.Next(200, 1000)}) {rnd.Next(200, 1000)}-{rnd.Next(1000, 10000)}");
 
     private static string MakeStreetAddress(Random rnd) =>
-        $"{rnd.Next(1, 9999)} {Pick(MockCorpus.StreetNames, rnd)} {Pick(MockCorpus.StreetTypes, rnd)}";
+        FormattableString.Invariant($"{rnd.Next(1, 9999)} {Pick(MockCorpus.StreetNames, rnd)} {Pick(MockCorpus.StreetTypes, rnd)}");
 
     private static string MakeCompany(Random rnd)
     {
@@ -277,22 +310,55 @@ public static class MockDataTool
         _ => value.ToString(),
     };
 
-    private static string CsvField(string? value)
+    private static readonly char[] CsvSpecialChars = { ',', '"', '\n', '\r' };
+
+    private static void AppendCsvField(StringBuilder sb, string? value)
     {
         value ??= "";
-        return value.IndexOfAny(new[] { ',', '"', '\n', '\r' }) >= 0
-            ? "\"" + value.Replace("\"", "\"\"") + "\""
-            : value;
+        if (value.IndexOfAny(CsvSpecialChars) < 0)
+        {
+            sb.Append(value);
+            return;
+        }
+
+        sb.Append('"');
+        foreach (var ch in value)
+        {
+            if (ch == '"')
+                sb.Append('"');
+            sb.Append(ch);
+        }
+        sb.Append('"');
     }
 
-    private static string SqlLiteral(object? value) => value switch
+    private static void AppendSqlLiteral(StringBuilder sb, object? value)
     {
-        null => "NULL",
-        bool b => b ? "TRUE" : "FALSE",
-        int i => i.ToString(CultureInfo.InvariantCulture),
-        double d => d.ToString(CultureInfo.InvariantCulture),
-        _ => "'" + value.ToString()!.Replace("'", "''") + "'",
-    };
+        switch (value)
+        {
+            case null:
+                sb.Append("NULL");
+                return;
+            case bool b:
+                sb.Append(b ? "TRUE" : "FALSE");
+                return;
+            case int i:
+                sb.Append(i.ToString(CultureInfo.InvariantCulture));
+                return;
+            case double d:
+                sb.Append(d.ToString(CultureInfo.InvariantCulture));
+                return;
+            default:
+                sb.Append('\'');
+                foreach (var ch in value.ToString()!)
+                {
+                    if (ch == '\'')
+                        sb.Append('\'');
+                    sb.Append(ch);
+                }
+                sb.Append('\'');
+                return;
+        }
+    }
 
     private sealed class Person
     {
@@ -308,7 +374,7 @@ public static class MockDataTool
             var domain = Pick(MockCorpus.EmailDomains, rnd);
             Email = $"{First.ToLowerInvariant()}.{Last.ToLowerInvariant()}@{domain}";
             var suffix = rnd.Next(1, 100);
-            Username = $"{First.ToLowerInvariant()}{Last.ToLowerInvariant()[..1]}{suffix}";
+            Username = FormattableString.Invariant($"{First.ToLowerInvariant()}{Last.ToLowerInvariant()[..1]}{suffix}");
         }
     }
 }

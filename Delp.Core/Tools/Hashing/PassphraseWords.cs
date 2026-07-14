@@ -38,7 +38,7 @@ public static class PassphraseWords
         "chips", "choice", "choir", "choose", "chord", "chorus", "chose", "churn",
         "cider", "circus", "clam", "claw", "clean", "clear", "cleat", "cloak",
         "clock", "closet", "cloth", "cloud", "coach", "coat", "cocoa", "code",
-        "coil", "coke", "cold", "color", "combat", "comet", "comic", "comma",
+        "coil", "coin", "cold", "color", "combat", "comet", "comic", "comma",
         "common", "confer", "cook", "cool", "coral", "core", "corn", "corner",
         "cough", "county", "couple", "court", "cousin", "crash", "crate", "crawl",
         "crayon", "cream", "creek", "crew", "crib", "cried", "critic", "crowd",
