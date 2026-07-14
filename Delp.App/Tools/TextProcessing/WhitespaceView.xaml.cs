@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.TextProcessing;
 
@@ -19,20 +20,36 @@ public partial class WhitespaceView : UserControl
     ];
 
     private bool _updating;
+    private readonly DispatcherTimer _debounceTimer;
 
     public WhitespaceView()
     {
         InitializeComponent();
         LineEndingBox.ItemsSource = LineEndings.Select(l => l.Label).ToList();
         LineEndingBox.SelectedIndex = 0;
+
+        _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _debounceTimer.Tick += (_, _) =>
+        {
+            _debounceTimer.Stop();
+            Refresh();
+        };
     }
 
-    private void InputBox_TextChanged(object sender, TextChangedEventArgs e) => Refresh();
+    // Visualize/Clean both re-scan the entire input, so on a large paste re-running them on
+    // every keystroke would visibly lag typing — debounce so cost only pays once typing pauses.
+    private void InputBox_TextChanged(object sender, TextChangedEventArgs e) => Debounce();
 
     private void Option_Changed(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
-            Refresh();
+            Debounce();
+    }
+
+    private void Debounce()
+    {
+        _debounceTimer.Stop();
+        _debounceTimer.Start();
     }
 
     private void Refresh()

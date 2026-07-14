@@ -29,12 +29,24 @@ public partial class UnixTimeView : UserControl
         UnitBox.SelectedIndex = 0;
 
         UpdateNow();
+    }
+
+    // View instances are cached and re-attached (ToolHost.Content flips back to them) when
+    // the user revisits this tool, which fires Loaded again — so the ticker has to restart
+    // here, not just once in the constructor, or the NOW card goes stale forever after the
+    // first time the user navigates away.
+    private void UnixTimeView_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_timer is not null)
+            return; // already running (defensive: Loaded shouldn't fire twice without Unloaded)
+
+        UpdateNow();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => UpdateNow();
         _timer.Start();
     }
 
-    // Stops the ticker so the view doesn't keep updating (or leak) after being closed.
+    // Stops the ticker so the view doesn't keep updating (or leak) while it's not visible.
     private void UnixTimeView_Unloaded(object sender, RoutedEventArgs e)
     {
         _timer?.Stop();

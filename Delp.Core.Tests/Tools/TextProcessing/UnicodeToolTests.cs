@@ -72,4 +72,50 @@ public class UnicodeToolTests
         var report = UnicodeTool.Inspect(text);
         Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(text), report.Utf8Bytes);
     }
+
+    [Fact]
+    public void Inspect_InputLongerThanCap_CharsRowsAreCappedButTotalsAreNotAndNoTruncatedRowLeaks()
+    {
+        // maxChars caps how many detailed CharInfo rows get built (the UI table), but the
+        // aggregate counts must still reflect the full input.
+        var text = new string('a', 1000);
+        var report = UnicodeTool.Inspect(text, maxChars: 500);
+
+        Assert.Equal(500, report.Chars.Count);
+        Assert.Equal(1000, report.Codepoints);
+        Assert.Equal(1000, report.Utf16Units);
+        Assert.Equal(1000, report.Graphemes);
+    }
+
+    [Fact]
+    public void Inspect_DefaultCap_Is500()
+    {
+        var text = new string('a', 600);
+        var report = UnicodeTool.Inspect(text);
+        Assert.Equal(UnicodeTool.DefaultDisplayCap, report.Chars.Count);
+        Assert.Equal(500, report.Chars.Count);
+        Assert.Equal(600, report.Codepoints);
+    }
+
+    [Fact]
+    public void Inspect_InputShorterThanCap_AllCharsPresent()
+    {
+        var report = UnicodeTool.Inspect("abc", maxChars: 500);
+        Assert.Equal(3, report.Chars.Count);
+        Assert.Equal(3, report.Codepoints);
+    }
+
+    [Fact]
+    public void Inspect_NegativeMaxChars_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => UnicodeTool.Inspect("abc", maxChars: -1));
+    }
+
+    [Fact]
+    public void Inspect_MaxCharsZero_NoRowsButTotalsStillComputed()
+    {
+        var report = UnicodeTool.Inspect("abc", maxChars: 0);
+        Assert.Empty(report.Chars);
+        Assert.Equal(3, report.Codepoints);
+    }
 }
