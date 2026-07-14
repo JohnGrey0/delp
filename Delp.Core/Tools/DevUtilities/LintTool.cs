@@ -80,26 +80,55 @@ public static class LintTool
 
     private static IReadOnlyList<MetadataReference> BuildCSharpReferences()
     {
-        var trustedAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
-        if (string.IsNullOrEmpty(trustedAssemblies))
-            return [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)];
-
         var refs = new List<MetadataReference>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in trustedAssemblies.Split(Path.PathSeparator))
+        if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedAssemblies)
         {
-            var name = Path.GetFileNameWithoutExtension(path);
-            if (!seen.Add(name))
-                continue;
-            if (Array.Exists(WantedAssemblyNames, w => w.Equals(name, StringComparison.OrdinalIgnoreCase)))
-                refs.Add(MetadataReference.CreateFromFile(path));
+            foreach (var path in trustedAssemblies.Split(Path.PathSeparator))
+            {
+                var name = Path.GetFileNameWithoutExtension(path);
+                if (!seen.Add(name))
+                    continue;
+                // In single-file publishes the TPA entries point inside the bundle and do
+                // not exist on disk — File.Exists filters those out so we fall back below.
+                if (Array.Exists(WantedAssemblyNames, w => w.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    && File.Exists(path))
+                    refs.Add(MetadataReference.CreateFromFile(path));
+            }
         }
 
-        // Should never happen on a normal .NET install, but never leave the compiler with zero
-        // references (every diagnostic would otherwise be swamped by "object not found").
+        // Single-file (or otherwise pathless) deployment: build references from the raw
+        // metadata of assemblies loaded in this very process instead of from files.
         if (refs.Count == 0)
-            refs.Add(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+            refs.AddRange(BuildCSharpReferencesFromLoadedAssemblies());
 
+        return refs;
+    }
+
+    /// <summary>
+    /// File-less reference construction for single-file publishes: loads each wanted
+    /// assembly by name (works from inside a bundle) and wraps its in-memory metadata.
+    /// Public so tests can prove the single-file path binds real code.
+    /// </summary>
+    public static unsafe IReadOnlyList<MetadataReference> BuildCSharpReferencesFromLoadedAssemblies()
+    {
+        var refs = new List<MetadataReference>();
+        foreach (var name in WantedAssemblyNames)
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.Load(name);
+                if (!System.Reflection.Metadata.AssemblyExtensions.TryGetRawMetadata(
+                        assembly, out var blob, out var length))
+                    continue;
+                var module = ModuleMetadata.CreateFromMetadata((IntPtr)blob, length);
+                refs.Add(AssemblyMetadata.Create(module).GetReference());
+            }
+            catch
+            {
+                // A facade that can't load standalone is fine to skip; CoreLib always loads.
+            }
+        }
         return refs;
     }
 

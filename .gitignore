@@ -489,3 +489,4 @@ $RECYCLE.BIN/
 # The macOS bundle pattern *.app above matches Delp.App/ on Windows (case-insensitive) ? re-include it
 !/Delp.App/
 /.claude/worktrees/
+/dist/

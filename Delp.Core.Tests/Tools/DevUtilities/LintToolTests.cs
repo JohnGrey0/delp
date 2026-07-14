@@ -250,3 +250,26 @@ public class LintToolTests
         Assert.Equal(sorted, lines);
     }
 }
+
+public class LintToolSingleFileFallbackTests
+{
+    [Fact]
+    public void LoadedAssemblyReferences_BindRealCode_WithoutAnyFiles()
+    {
+        var refs = Delp.Core.Tools.DevUtilities.LintTool.BuildCSharpReferencesFromLoadedAssemblies();
+        Assert.NotEmpty(refs);
+
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(
+            "using System.Linq; int x = 1; System.Console.WriteLine(x + new[] { 2, 3 }.Sum());");
+        var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+            "probe",
+            new[] { tree },
+            refs,
+            new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(
+                Microsoft.CodeAnalysis.OutputKind.ConsoleApplication));
+        var errors = compilation.GetDiagnostics()
+            .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+            .ToList();
+        Assert.Empty(errors);
+    }
+}
