@@ -130,8 +130,11 @@ public static partial class CodeCheatSheetData
                     string name = doc.RootElement.GetProperty("name").GetString()!;
                     Console.WriteLine(name);
 
-                    // Deserialize into a strongly-typed record
-                    Person person = JsonSerializer.Deserialize<Person>(json)!;
+                    // Deserialize into a strongly-typed record. System.Text.Json matches
+                    // property names case-sensitively by default, so opt in to
+                    // case-insensitive matching to bind the lowercase JSON keys.
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    Person person = JsonSerializer.Deserialize<Person>(json, options)!;
                     Console.WriteLine(person.Age);
 
                     // Serialize back to JSON

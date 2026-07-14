@@ -69,8 +69,8 @@ public static partial class ShellCheatSheetData
 
         new("Show my public IP address", "Network",
             "curl -s ifconfig.me/ip",
-            "Invoke-RestMethod -Uri ifconfig.me/ip",
-            null),
+            "Invoke-RestMethod -Uri https://ifconfig.me/ip",
+            "Unlike curl, Invoke-RestMethod requires an explicit scheme in the URI or it throws an Invalid URI error."),
 
         new("Show local network interface addresses", "Network",
             "ip addr",
@@ -112,8 +112,8 @@ public static partial class ShellCheatSheetData
 
         new("Compress a single file with gzip", "Archives",
             "gzip -k file.txt",
-            "tar -czf file.txt.gz file.txt",
-            "Windows PowerShell 5.1 has no built-in gzip cmdlet; the bundled tar.exe is the simplest way to produce a real .gz."),
+            "$in = [System.IO.File]::OpenRead('file.txt'); $out = [System.IO.File]::Create('file.txt.gz'); $gzip = New-Object System.IO.Compression.GZipStream $out, ([System.IO.Compression.CompressionMode]::Compress); $in.CopyTo($gzip); $gzip.Close(); $out.Close(); $in.Close()",
+            "Windows PowerShell 5.1 has no built-in gzip cmdlet; tar -czf would wrap the file in a tar container instead of producing a plain .gz, so GZipStream is used to match gzip's output format exactly."),
     };
 
     internal static IReadOnlyList<ShellEntry> EnvironmentEntries { get; } = new List<ShellEntry>
@@ -164,7 +164,7 @@ public static partial class ShellCheatSheetData
         new("Show memory usage", "System",
             "free -h",
             "Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize",
-            "Both values are reported in KB; divide by 1MB (as bytes) or 1024 to convert to MB."),
+            "Both values are reported in KB; divide by 1024 to convert to MB, or by 1MB (1,048,576) to convert to GB."),
 
         new("Show system uptime", "System",
             "uptime",

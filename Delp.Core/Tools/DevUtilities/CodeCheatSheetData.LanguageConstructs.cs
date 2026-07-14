@@ -958,7 +958,9 @@ public static partial class CodeCheatSheetData
 
                     std::function<int()> makeCounter() {
                         int count = 0;
-                        // capture by reference so mutations persist across calls
+                        // capture by value (mutable lets the closure mutate its own
+                        // copy); count is a local, so capturing by reference here
+                        // would leave a dangling reference once makeCounter returns
                         return [count]() mutable {
                             return ++count;
                         };
