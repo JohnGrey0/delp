@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="DelpJson" extensions=".json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="PropertyName" foreground="#7CC1FF" />
+  <Color name="String" foreground="#8FDB8F" />
+  <Color name="Number" foreground="#F5B76B" />
+  <Color name="Keyword" foreground="#D48FE0" />
+  <Color name="Punctuation" foreground="#9AA0A6" />
+  <RuleSet>
+    <Keywords color="Keyword">
+      <Word>true</Word>
+      <Word>false</Word>
+      <Word>null</Word>
+    </Keywords>
+    <Rule color="PropertyName">"(\\.|[^"\\])*"(?=\s*:)</Rule>
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Rule color="Number">[-+]?\d+(\.\d+)?([eE][-+]?\d+)?</Rule>
+    <Rule color="Punctuation">[{}\[\],:]</Rule>
+  </RuleSet>
+</SyntaxDefinition>
