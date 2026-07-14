@@ -28,57 +28,56 @@ public partial class CssMinifyView : UserControl
         _inputEditor.Text = ".card {\n  display: flex;\n  padding: 12px 16px;\n}\n";
     }
 
-    private void Minify_Click(object sender, RoutedEventArgs e)
+    private async void Minify_Click(object sender, RoutedEventArgs e)
     {
+        var css = _inputEditor.Text;
+        SetBusy(true);
         try
         {
-            var result = CssTool.Minify(_inputEditor.Text);
+            var result = await Task.Run(() => CssTool.Minify(css));
             _outputEditor.Text = result.Code ?? "";
-            ShowStatus(result.BeforeBytes, result.AfterBytes);
-            ShowErrors(result.Errors);
+            MinifierUi.ShowResult(StatusText, ErrorsText, result);
         }
         catch (Exception ex)
         {
-            ShowErrors([ex.Message]);
+            MinifierUi.ShowError(ErrorsText, ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
         }
     }
 
-    private void Beautify_Click(object sender, RoutedEventArgs e)
+    private async void Beautify_Click(object sender, RoutedEventArgs e)
     {
+        var css = _inputEditor.Text;
+        SetBusy(true);
         try
         {
-            var before = System.Text.Encoding.UTF8.GetByteCount(_inputEditor.Text);
-            var beautified = CssTool.Beautify(_inputEditor.Text, 2);
+            var before = System.Text.Encoding.UTF8.GetByteCount(css);
+            var beautified = await Task.Run(() => CssTool.Beautify(css, 2));
+            var after = System.Text.Encoding.UTF8.GetByteCount(beautified);
             _outputEditor.Text = beautified;
-            ShowStatus(before, System.Text.Encoding.UTF8.GetByteCount(beautified));
-            ShowErrors([]);
+
+            var pct = before == 0 ? 0 : Math.Round((1 - (double)after / before) * 100, 1);
+            StatusText.Text = MinifierUi.FormatSavings(before, after, pct);
+            MinifierUi.ShowErrors(ErrorsText, []);
         }
         catch (Exception ex)
         {
-            ShowErrors([ex.Message]);
+            MinifierUi.ShowError(ErrorsText, ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
         }
     }
 
     private void CopyOutput_Click(object sender, RoutedEventArgs e) => Ui.Copy(_outputEditor.Text, CopyOutputBtn);
 
-    private void ShowStatus(int before, int after)
+    private void SetBusy(bool busy)
     {
-        var pct = before == 0 ? 0 : Math.Round((1 - (double)after / before) * 100, 1);
-        var sign = pct >= 0 ? "-" : "+";
-        StatusText.Text = $"{FormatBytes(before)} → {FormatBytes(after)} ({sign}{Math.Abs(pct):0.0}%)";
+        MinifyBtn.IsEnabled = !busy;
+        BeautifyBtn.IsEnabled = !busy;
     }
-
-    private void ShowErrors(IReadOnlyList<string> errors)
-    {
-        if (errors.Count == 0)
-        {
-            ErrorsText.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        ErrorsText.Text = string.Join("\n", errors);
-        ErrorsText.Visibility = Visibility.Visible;
-    }
-
-    private static string FormatBytes(int bytes) => bytes >= 1024 ? $"{bytes / 1024.0:0.0} KB" : $"{bytes} B";
 }

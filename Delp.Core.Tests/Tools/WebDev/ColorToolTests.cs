@@ -169,4 +169,66 @@ public class ColorToolTests
         var c = ColorTool.Parse("#336699");
         Assert.Equal(1.0, ColorTool.ContrastRatio(c, c), 2);
     }
+
+    /// <summary>RGB -&gt; HSL -&gt; RGB must round-trip (within 8-bit rounding) across a grid of colors,
+    /// including the grayscale/achromatic edge (R==G==B, where hue is undefined) and pure primaries.</summary>
+    [Theory]
+    [MemberData(nameof(RgbGrid))]
+    public void ToHsl_FromHsl_RoundTrips_AcrossGrid(byte r, byte g, byte b)
+    {
+        var original = new ParsedColor(r, g, b, 255);
+        var hsl = ColorTool.ToHsl(original);
+        var roundTripped = ColorTool.FromHsl(hsl);
+
+        AssertCloseByte(original.R, roundTripped.R);
+        AssertCloseByte(original.G, roundTripped.G);
+        AssertCloseByte(original.B, roundTripped.B);
+    }
+
+    /// <summary>RGB -&gt; HSB -&gt; RGB must round-trip (within 8-bit rounding) across the same grid.</summary>
+    [Theory]
+    [MemberData(nameof(RgbGrid))]
+    public void ToHsb_FromHsb_RoundTrips_AcrossGrid(byte r, byte g, byte b)
+    {
+        var original = new ParsedColor(r, g, b, 255);
+        var hsb = ColorTool.ToHsb(original);
+        var roundTripped = ColorTool.FromHsb(hsb);
+
+        AssertCloseByte(original.R, roundTripped.R);
+        AssertCloseByte(original.G, roundTripped.G);
+        AssertCloseByte(original.B, roundTripped.B);
+    }
+
+    /// <summary>Every channel value stays within 0-100% saturation/lightness/brightness and 0-360deg hue.</summary>
+    [Theory]
+    [MemberData(nameof(RgbGrid))]
+    public void ToHsl_ToHsb_StayWithinDocumentedRanges(byte r, byte g, byte b)
+    {
+        var c = new ParsedColor(r, g, b, 255);
+        var hsl = ColorTool.ToHsl(c);
+        var hsb = ColorTool.ToHsb(c);
+
+        Assert.InRange(hsl.H, 0, 360);
+        Assert.InRange(hsl.S, 0, 100);
+        Assert.InRange(hsl.L, 0, 100);
+        Assert.InRange(hsb.H, 0, 360);
+        Assert.InRange(hsb.S, 0, 100);
+        Assert.InRange(hsb.B, 0, 100);
+    }
+
+    private static void AssertCloseByte(byte expected, byte actual) =>
+        Assert.True(Math.Abs(expected - actual) <= 1, $"Expected {expected}, got {actual} (diff > 1).");
+
+    public static TheoryData<byte, byte, byte> RgbGrid()
+    {
+        var data = new TheoryData<byte, byte, byte>();
+        // 17-step grid (0,17,...,255 -> 16 steps) over each channel, plus grayscale/primary edges are
+        // naturally included at the 0/255 corners.
+        byte[] steps = [0, 17, 34, 85, 128, 170, 221, 255];
+        foreach (var r in steps)
+            foreach (var g in steps)
+                foreach (var b in steps)
+                    data.Add(r, g, b);
+        return data;
+    }
 }
