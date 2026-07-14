@@ -425,6 +425,9 @@ test-results/
 # Mac bundle stuff
 *.dmg
 *.app
+# *.app above (macOS bundle) unintentionally matches our Delp.App project on
+# case-insensitive filesystems; explicitly un-ignore it.
+!/Delp.App/
 
 # content below from: https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 # General
