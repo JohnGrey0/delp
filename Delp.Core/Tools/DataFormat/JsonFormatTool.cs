@@ -15,14 +15,8 @@ public static class JsonFormatTool
     /// <summary>Pretty-prints JSON with the given options. Numbers are emitted exactly as
     /// written in the source; everything else is re-serialized from a normalized tree.</summary>
     /// <exception cref="FormatException">The input is not valid JSON.</exception>
-    public static string Format(string json, JsonFormatOptions? options = null)
-    {
-        options ??= new JsonFormatOptions();
-        var node = JsonParsing.ParseOrThrow(json);
-        var sb = new StringBuilder();
-        WriteNode(node, sb, 0, options, pretty: true);
-        return sb.ToString();
-    }
+    public static string Format(string json, JsonFormatOptions? options = null) =>
+        FormatNode(JsonParsing.ParseOrThrow(json), options);
 
     /// <summary>Removes all insignificant whitespace.</summary>
     /// <exception cref="FormatException">The input is not valid JSON.</exception>
@@ -31,6 +25,18 @@ public static class JsonFormatTool
         var node = JsonParsing.ParseOrThrow(json);
         var sb = new StringBuilder();
         WriteNode(node, sb, 0, new JsonFormatOptions(), pretty: false);
+        return sb.ToString();
+    }
+
+    /// <summary>Pretty-prints an already-parsed <see cref="JsonNode"/> tree directly, skipping
+    /// the parse/duplicate-key-check pass — for callers that built the tree in memory (jsonpath,
+    /// json-yaml, toml-parse) and would otherwise pay for a redundant full re-parse of their own
+    /// freshly-serialized output.</summary>
+    internal static string FormatNode(JsonNode? node, JsonFormatOptions? options = null)
+    {
+        options ??= new JsonFormatOptions();
+        var sb = new StringBuilder();
+        WriteNode(node, sb, 0, options, pretty: true);
         return sb.ToString();
     }
 

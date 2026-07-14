@@ -1,7 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
 
 namespace Delp.Core.Tools.DataFormat;
 
@@ -14,14 +12,7 @@ public static class JsonYamlTool
         var root = JsonParsing.ParseOrThrow(json);
         var graph = JsonToGraph(root);
 
-        var valueSerializer = new SerializerBuilder()
-            .WithIndentedSequences()
-            .WithQuotingNecessaryStrings(true)
-            .BuildValueSerializer();
-        var serializer = Serializer.FromValueSerializer(
-            valueSerializer, EmitterSettings.Default.WithBestIndent(2).WithNewLine("\n"));
-
-        var text = serializer.Serialize(graph);
+        var text = YamlSerializing.Create().Serialize(graph);
         return string.IsNullOrEmpty(text) ? "" : text.TrimEnd('\r', '\n') + "\n";
     }
 
@@ -32,7 +23,7 @@ public static class JsonYamlTool
         var stream = YamlParsing.ParseOrThrow(yaml);
 
         if (stream.Documents.Count == 0)
-            return JsonFormatTool.Format("null");
+            return JsonFormatTool.FormatNode(null);
         if (stream.Documents.Count > 1)
             throw new FormatException(
                 "Multiple YAML documents are not supported by this converter — " +
@@ -40,7 +31,7 @@ public static class JsonYamlTool
 
         var graph = YamlGraphHelper.ToGraph(stream.Documents[0].RootNode);
         var node = GraphToJsonNode(graph);
-        return JsonFormatTool.Format(node is null ? "null" : node.ToJsonString());
+        return JsonFormatTool.FormatNode(node);
     }
 
     private static object? JsonToGraph(JsonNode? node) => node switch

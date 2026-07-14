@@ -39,7 +39,16 @@ public partial class JsonPathView : UserControl
         Run();
     }
 
-    private void PathBox_TextChanged(object sender, TextChangedEventArgs e) => DebounceRun();
+    // Guarded like Base64View.Option_Changed: PathBox's XAML default Text="$" fires this
+    // TextChanged handler during InitializeComponent, before _debounce (and _input/_results)
+    // are assigned in the constructor — without the IsLoaded check this throws a
+    // NullReferenceException on every construction. The constructor's explicit Run() call
+    // after field initialization covers the initial state instead.
+    private void PathBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (IsLoaded)
+            DebounceRun();
+    }
 
     private void CopyResults_Click(object sender, RoutedEventArgs e) => Ui.Copy(_results.Text, CopyResultsBtn);
 

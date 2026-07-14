@@ -54,7 +54,8 @@ public class YamlFormatToolTests
     {
         var error = YamlFormatTool.Validate("a: 1\n b: 2\n");
         Assert.NotNull(error);
-        Assert.True(error!.Line >= 1);
+        Assert.Equal(2, error!.Line);
+        Assert.Equal(3, error.Col);
     }
 
     [Fact]

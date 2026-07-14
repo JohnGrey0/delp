@@ -43,7 +43,7 @@ public static class JsonPathTool
         foreach (var match in evaluated.Matches)
             matches.Add(match.Value?.DeepClone());
 
-        var resultJson = JsonFormatTool.Format(matches.ToJsonString());
+        var resultJson = JsonFormatTool.FormatNode(matches);
         return new JsonPathResult(evaluated.Matches.Count, resultJson);
     }
 }

@@ -128,5 +128,7 @@ public partial class JsonFormatView : UserControl
     }
 
     private static string FormatSize(int bytes) =>
-        bytes < 1024 ? $"{bytes} B" : $"{bytes / 1024.0:0.#} KB";
+        bytes < 1024
+            ? bytes.ToString(CultureInfo.InvariantCulture) + " B"
+            : (bytes / 1024.0).ToString("0.#", CultureInfo.InvariantCulture) + " KB";
 }

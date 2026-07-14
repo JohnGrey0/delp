@@ -16,7 +16,7 @@ public static class TomlTool
     {
         var table = ParseOrThrow(toml);
         var node = ValueToJson(table);
-        return JsonFormatTool.Format(node is null ? "null" : node.ToJsonString());
+        return JsonFormatTool.FormatNode(node);
     }
 
     /// <summary>Returns null when valid, otherwise the first diagnostic's location and message.</summary>

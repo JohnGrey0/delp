@@ -106,8 +106,8 @@ public class TomlToolTests
     {
         var error = TomlTool.Validate("a = [1, 2\nb = 3");
         Assert.NotNull(error);
-        Assert.True(error!.Line >= 1);
-        Assert.True(error.Col >= 1);
+        Assert.Equal(2, error!.Line);
+        Assert.Equal(1, error.Col);
     }
 
     [Fact]

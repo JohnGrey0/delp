@@ -1,6 +1,4 @@
 using System.Text;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
 
 namespace Delp.Core.Tools.DataFormat;
 
@@ -18,12 +16,7 @@ public static class YamlFormatTool
         if (stream.Documents.Count == 0)
             return "";
 
-        var valueSerializer = new SerializerBuilder()
-            .WithIndentedSequences()
-            .WithQuotingNecessaryStrings(true)
-            .BuildValueSerializer();
-        var serializer = Serializer.FromValueSerializer(
-            valueSerializer, EmitterSettings.Default.WithBestIndent(Math.Clamp(indent, 1, 8)).WithNewLine("\n"));
+        var serializer = YamlSerializing.Create(indent);
 
         var multiDoc = stream.Documents.Count > 1;
         var sb = new StringBuilder();
