@@ -1,0 +1,71 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.WhitespaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <CheckBox x:Name="TrimTrailingBox" Content="Trim trailing" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" IsChecked="True" />
+            <CheckBox x:Name="TrimLeadingBox" Content="Trim leading" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="CollapseSpacesBox" Content="Collapse spaces" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="TabsToSpacesBox" Content="Tabs → spaces" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="SpacesToTabsBox" Content="Spaces → tabs" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,6">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Text.Sub}" Text="Tab width" />
+                <TextBox x:Name="TabWidthBox" Width="40" Text="4" TextChanged="Option_Changed" />
+            </StackPanel>
+            <CheckBox x:Name="RemoveEmptyBox" Content="Remove empty lines" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="CollapseEmptyBox" Content="Collapse empty lines" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="StripZeroWidthBox" Content="Strip zero-width" Margin="0,0,12,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,6">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Text.Sub}" Text="Line endings" />
+                <ComboBox x:Name="LineEndingBox" Width="90" SelectionChanged="Option_Changed" />
+            </StackPanel>
+        </WrapPanel>
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Sub}" />
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1.2*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="INPUT" />
+            <TextBox x:Name="InputBox"
+                     Grid.Row="1"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="56"
+                     TextChanged="InputBox_TextChanged" />
+
+            <TextBlock Grid.Row="2" Margin="0,12,0,6" Style="{StaticResource Text.Section}" Text="VISUALIZED" />
+            <TextBox x:Name="VisualizedBox"
+                     Grid.Row="3"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="48"
+                     IsReadOnly="True" />
+
+            <DockPanel Grid.Row="4" Margin="0,12,0,6">
+                <Button x:Name="CopyCleanedBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyCleaned_Click" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="CLEANED" />
+            </DockPanel>
+            <TextBox x:Name="CleanedBox"
+                     Grid.Row="5"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="48"
+                     IsReadOnly="True" />
+        </Grid>
+    </DockPanel>
+</UserControl>
