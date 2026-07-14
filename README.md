@@ -31,6 +31,15 @@ offline (the sole exception: the SSL decoder's optional fetch-from-host mode).
   admin required, Start Menu shortcut, clean uninstall. Lowest memory use.
 - **Portable:** `dist\portable\delp.exe` — single self-contained file, no
   installation, no .NET required. Copy anywhere and run.
+- **Portable lite:** `dist\portable-lite\delp.exe` (~40 MB) — same app, but
+  requires the .NET 10 Desktop Runtime on the machine (Windows offers the
+  download automatically on first launch if it's missing). Keep
+  `WebView2Loader.dll` next to it.
+
+Why the sizes: the app's own code and data are only a few MB. The
+self-contained builds embed the entire .NET runtime + WPF (~76 MB) so they
+run on any Windows machine with zero prerequisites; the Roslyn compiler that
+powers the C# linter adds ~24 MB more.
 
 ## Build from source
 
