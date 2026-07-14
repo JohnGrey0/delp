@@ -10,6 +10,9 @@
             <TextBox x:Name="InputBox"
                      Style="{StaticResource TextBox.Mono}"
                      AcceptsReturn="False"
+                     TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Hidden"
+                     VerticalContentAlignment="Center"
                      Text="8.8.8.8"
                      TextChanged="InputBox_TextChanged" />
         </StackPanel>
