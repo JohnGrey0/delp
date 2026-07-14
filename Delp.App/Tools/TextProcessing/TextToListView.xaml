@@ -1,0 +1,71 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.TextToListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <RadioButton x:Name="WordsMode" Content="Words" GroupName="SplitMode" IsChecked="True" Checked="Mode_Changed" Margin="0,0,14,6" />
+            <RadioButton x:Name="LinesMode" Content="Lines" GroupName="SplitMode" Checked="Mode_Changed" Margin="0,0,14,6" />
+            <RadioButton x:Name="DelimiterMode" Content="Delimiter" GroupName="SplitMode" Checked="Mode_Changed" Margin="0,0,8,6" />
+            <TextBox x:Name="DelimiterBox" Width="46" Text="," TextChanged="Option_Changed" Visibility="Collapsed" Margin="0,0,16,6" />
+
+            <CheckBox x:Name="TrimBox" Content="Trim" IsChecked="True" Checked="Option_Changed" Unchecked="Option_Changed" Margin="0,0,14,6" />
+            <CheckBox x:Name="RemoveEmptyBox" Content="Remove empty" IsChecked="True" Checked="Option_Changed" Unchecked="Option_Changed" Margin="0,0,14,6" />
+            <CheckBox x:Name="DedupeBox" Content="Dedupe" Checked="Option_Changed" Unchecked="Option_Changed" Margin="0,0,14,6" />
+            <CheckBox x:Name="LowercaseBox" Content="Lowercase" Checked="Option_Changed" Unchecked="Option_Changed" Margin="0,0,14,6" />
+            <CheckBox x:Name="StripPunctuationBox" Content="Strip punctuation" Checked="Option_Changed" Unchecked="Option_Changed" Margin="0,0,14,6" />
+        </WrapPanel>
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock Text="Format" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                <ComboBox x:Name="FormatBox" Width="160" SelectionChanged="Option_Changed" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock Text="Quote" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                <ComboBox x:Name="QuoteBox" Width="110" SelectionChanged="Option_Changed" />
+            </StackPanel>
+        </WrapPanel>
+
+        <TextBlock DockPanel.Dock="Top"
+                   Margin="0,0,0,10"
+                   Style="{StaticResource Text.Sub}"
+                   TextWrapping="Wrap"
+                   Text="JSON array, C# array, CSV, SQL IN, plain lines, and space-joined always use their own required quoting — the Quote option only applies to Python list and JavaScript array." />
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Sub}" />
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,4,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="INPUT" />
+            <TextBox x:Name="InputBox"
+                     Grid.Row="1"
+                     Style="{StaticResource TextBox.Mono}"
+                     TextChanged="InputBox_TextChanged" />
+
+            <DockPanel Grid.Row="2" Margin="0,14,0,6">
+                <Button x:Name="CopyBtn" DockPanel.Dock="Right" Content="Copy" Click="Copy_Click" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
+            </DockPanel>
+            <TextBox x:Name="OutputBox"
+                     Grid.Row="3"
+                     Style="{StaticResource TextBox.Mono}"
+                     IsReadOnly="True" />
+        </Grid>
+    </DockPanel>
+</UserControl>
