@@ -50,13 +50,26 @@
                          SelectionChanged="NavList_SelectionChanged">
                     <ListBox.GroupStyle>
                         <GroupStyle>
-                            <GroupStyle.HeaderTemplate>
-                                <DataTemplate>
-                                    <TextBlock Margin="10,12,0,4"
-                                               Style="{StaticResource Text.Section}"
-                                               Text="{Binding Name}" />
-                                </DataTemplate>
-                            </GroupStyle.HeaderTemplate>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="GroupItem">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="GroupItem">
+                                                <StackPanel>
+                                                    <ToggleButton x:Name="HeaderToggle"
+                                                                  Style="{StaticResource NavGroupHeader}"
+                                                                  Content="{Binding Name}"
+                                                                  IsChecked="True"
+                                                                  Loaded="GroupToggle_Loaded"
+                                                                  Checked="GroupToggle_Changed"
+                                                                  Unchecked="GroupToggle_Changed" />
+                                                    <ItemsPresenter Visibility="{Binding IsChecked, ElementName=HeaderToggle, Converter={StaticResource BoolToVis}}" />
+                                                </StackPanel>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
                         </GroupStyle>
                     </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
@@ -81,10 +94,25 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel x:Name="HeaderPanel" Grid.Row="0" Margin="20,16,20,0" Visibility="Collapsed">
-                        <TextBlock x:Name="ToolTitle" Style="{StaticResource Text.Title}" />
-                        <TextBlock x:Name="ToolDesc" Style="{StaticResource Text.Sub}" Margin="0,2,0,0" />
-                    </StackPanel>
+                    <Grid x:Name="HeaderPanel" Grid.Row="0" Margin="20,16,20,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock x:Name="ToolTitle" Style="{StaticResource Text.Title}" />
+                            <TextBlock x:Name="ToolDesc" Style="{StaticResource Text.Sub}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Button x:Name="StarBtn"
+                                Grid.Column="1"
+                                Style="{StaticResource Button.Icon}"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="14"
+                                VerticalAlignment="Top"
+                                Content="&#xE734;"
+                                ToolTip="Add to favorites"
+                                Click="Star_Click" />
+                    </Grid>
 
                     <ContentControl x:Name="ToolHost" Grid.Row="1" Margin="4" />
 

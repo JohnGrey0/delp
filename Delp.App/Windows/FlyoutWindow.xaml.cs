@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -14,6 +14,9 @@ namespace Delp.App.Windows;
 /// </summary>
 public partial class FlyoutWindow : GlassWindow
 {
+    private const string StarOutline = "";
+    private const string StarFilled = "";
+
     private readonly Dictionary<string, UserControl> _views = new();
     private ToolInfo? _current;
 
@@ -23,6 +26,7 @@ public partial class FlyoutWindow : GlassWindow
     public FlyoutWindow()
     {
         InitializeComponent();
+        SettingsService.FavoritesChanged += OnFavoritesChanged;
         RefreshList(null);
     }
 
@@ -66,9 +70,14 @@ public partial class FlyoutWindow : GlassWindow
 
     private void RefreshList(string? query)
     {
-        var view = new ListCollectionView(ToolCatalog.Search(query).ToList());
-        if (string.IsNullOrWhiteSpace(query))
-            view.GroupDescriptions!.Add(new PropertyGroupDescription(nameof(ToolInfo.CategoryName)));
+        var searching = !string.IsNullOrWhiteSpace(query);
+        var items = searching
+            ? ToolCatalog.Search(query).Select(t => new NavItem(t, t.CategoryName)).ToList()
+            : NavItem.BuildGrouped(ToolCatalog.All);
+
+        var view = new ListCollectionView(items);
+        if (!searching)
+            view.GroupDescriptions!.Add(new PropertyGroupDescription(nameof(NavItem.Group)));
         ResultsList.ItemsSource = view;
     }
 
@@ -79,6 +88,7 @@ public partial class FlyoutWindow : GlassWindow
         ResultsList.Visibility = Visibility.Visible;
         SearchBox.Visibility = Visibility.Visible;
         BackBtn.Visibility = Visibility.Collapsed;
+        StarBtn.Visibility = Visibility.Collapsed;
         HeaderText.Text = "Delp";
         ResultsList.SelectedItem = null;
         SearchBox.Focus();
@@ -96,9 +106,33 @@ public partial class FlyoutWindow : GlassWindow
         ToolHost.Content = view;
         HeaderText.Text = info.Name;
         BackBtn.Visibility = Visibility.Visible;
+        StarBtn.Visibility = Visibility.Visible;
         ResultsList.Visibility = Visibility.Collapsed;
         SearchBox.Visibility = Visibility.Collapsed;
         ToolPane.Visibility = Visibility.Visible;
+        UpdateStar();
+    }
+
+    private void UpdateStar()
+    {
+        if (_current is null)
+            return;
+        var favorite = SettingsService.IsFavorite(_current.Id);
+        StarBtn.Content = favorite ? StarFilled : StarOutline;
+        StarBtn.ToolTip = favorite ? "Remove from favorites" : "Add to favorites";
+    }
+
+    private void Star_Click(object sender, RoutedEventArgs e)
+    {
+        if (_current is not null)
+            SettingsService.ToggleFavorite(_current.Id);
+    }
+
+    private void OnFavoritesChanged()
+    {
+        if (ResultsList.Visibility == Visibility.Visible)
+            RefreshList(SearchBox.Text);
+        UpdateStar();
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) =>
@@ -109,7 +143,7 @@ public partial class FlyoutWindow : GlassWindow
         switch (e.Key)
         {
             case Key.Enter when ResultsList.Items.Count > 0:
-                OpenTool((ToolInfo)ResultsList.Items[0]!);
+                OpenTool(((NavItem)ResultsList.Items[0]!).Tool);
                 e.Handled = true;
                 break;
             case Key.Down when ResultsList.Items.Count > 0:
@@ -122,8 +156,8 @@ public partial class FlyoutWindow : GlassWindow
 
     private void ResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ResultsList.SelectedItem is ToolInfo info)
-            OpenTool(info);
+        if (ResultsList.SelectedItem is NavItem item)
+            OpenTool(item.Tool);
     }
 
     private void Back_Click(object sender, RoutedEventArgs e) => ShowList();

@@ -1,0 +1,65 @@
+<UserControl x:Class="Delp.App.Tools.WebDev.SvgPathView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <TextBlock VerticalAlignment="Center"
+                       Style="{StaticResource Text.Section}"
+                       Text="PATH DATA (d)" />
+        </DockPanel>
+        <TextBox x:Name="PathBox"
+                 DockPanel.Dock="Top"
+                 Style="{StaticResource TextBox.Mono}"
+                 Height="80"
+                 Margin="0,0,0,10"
+                 TextChanged="PathBox_TextChanged" />
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <CheckBox x:Name="FillBox"
+                      Content="Fill"
+                      IsChecked="True"
+                      Margin="0,0,16,6"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+            <CheckBox x:Name="StrokeBox"
+                      Content="Stroke"
+                      IsChecked="True"
+                      Margin="0,0,16,6"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+        </WrapPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Sub}" />
+
+        <Border Style="{StaticResource Card.Editor}">
+            <Viewbox Stretch="Uniform" Margin="12">
+                <Path x:Name="PreviewPath" StrokeThickness="2">
+                    <Path.Style>
+                        <Style TargetType="Path">
+                            <Setter Property="Fill" Value="{StaticResource Brush.AccentSoft}" />
+                            <Setter Property="Stroke" Value="{StaticResource Brush.Accent}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=FillBox}" Value="False">
+                                    <Setter Property="Fill" Value="Transparent" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=StrokeBox}" Value="False">
+                                    <Setter Property="Stroke" Value="Transparent" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Path.Style>
+                </Path>
+            </Viewbox>
+        </Border>
+    </DockPanel>
+</UserControl>

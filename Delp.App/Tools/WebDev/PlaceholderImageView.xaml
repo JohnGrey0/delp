@@ -1,0 +1,60 @@
+<UserControl x:Class="Delp.App.Tools.WebDev.PlaceholderImageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="WIDTH" Margin="0,0,8,0" />
+                <TextBox x:Name="WidthBox" Width="70" Text="600" TextChanged="Option_TextChanged" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="HEIGHT" Margin="0,0,8,0" />
+                <TextBox x:Name="HeightBox" Width="70" Text="400" TextChanged="Option_TextChanged" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="BACKGROUND" Margin="0,0,8,0" />
+                <Border x:Name="BgSwatch" Width="18" Height="18" CornerRadius="4" Margin="0,0,6,0"
+                        BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1" />
+                <TextBox x:Name="BgBox" Width="90" Text="#2A2E34" TextChanged="Option_TextChanged" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="FOREGROUND" Margin="0,0,8,0" />
+                <Border x:Name="FgSwatch" Width="18" Height="18" CornerRadius="4" Margin="0,0,6,0"
+                        BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1" />
+                <TextBox x:Name="FgBox" Width="90" Text="#8A919B" TextChanged="Option_TextChanged" />
+            </StackPanel>
+        </WrapPanel>
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="LABEL" Margin="0,0,8,0" />
+                <TextBox x:Name="LabelBox"
+                         Width="160"
+                         Style="{StaticResource TextBox.Search}"
+                         Tag="600×400"
+                         TextChanged="Option_TextChanged" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <RadioButton x:Name="PngRadio" Content="PNG" GroupName="Format" IsChecked="True"
+                             Margin="0,0,12,0" Checked="Option_Changed" />
+                <RadioButton x:Name="JpegRadio" Content="JPEG" GroupName="Format" Checked="Option_Changed" />
+            </StackPanel>
+        </WrapPanel>
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="SaveBtn" Content="Save…" Margin="0,0,8,0" Click="Save_Click" />
+            <Button x:Name="CopyImageBtn" Content="Copy image" Click="CopyImage_Click" />
+        </StackPanel>
+
+        <Border Style="{StaticResource Card.Editor}">
+            <Image x:Name="PreviewImage" Stretch="Uniform" Margin="4" />
+        </Border>
+    </DockPanel>
+</UserControl>
