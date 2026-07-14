@@ -56,9 +56,7 @@
                         <TextBlock Text="MATCHES" Style="{StaticResource Text.Section}" Margin="0,10,0,4" />
                     </StackPanel>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ListBox x:Name="MatchesList" />
-                    </ScrollViewer>
+                    <ListBox x:Name="MatchesList" ScrollViewer.VerticalScrollBarVisibility="Auto" />
                 </DockPanel>
             </TabItem>
 

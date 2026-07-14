@@ -122,7 +122,23 @@ public partial class App : Application
                 var view = ToolCatalog.CreateView(info);
                 view.Measure(new Size(800, 600));
                 view.Arrange(new Rect(0, 0, 800, 600));
-                report.AppendLine($"OK   {sw.ElapsedMilliseconds,5} ms  {info.Id}");
+
+                var lint = new List<string>();
+                LintVisualTree(view, lint);
+
+                view.Measure(new Size(400, 5000));
+                if (view.DesiredSize.Width > 402)
+                    lint.Add($"overflows flyout width (needs {view.DesiredSize.Width:0} px at 400 px)");
+
+                if (lint.Count > 0)
+                {
+                    failures++;
+                    report.AppendLine($"LINT {sw.ElapsedMilliseconds,5} ms  {info.Id}: {string.Join(" | ", lint)}");
+                }
+                else
+                {
+                    report.AppendLine($"OK   {sw.ElapsedMilliseconds,5} ms  {info.Id}");
+                }
             }
             catch (Exception ex)
             {
@@ -181,6 +197,41 @@ public partial class App : Application
 
             Shutdown(0);
         });
+    }
+
+    /// <summary>
+    /// Automated UX lint over a laid-out view: catches the recurring WPF traps
+    /// this codebase has actually hit — ListBoxes nested inside an outer
+    /// ScrollViewer (mouse wheel dies, virtualization breaks) and fixed-height
+    /// TextBoxes too short for their content (glyphs clip).
+    /// </summary>
+    private static void LintVisualTree(DependencyObject root, List<string> lint)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is System.Windows.Controls.ListBox listBox)
+            {
+                for (var a = VisualTreeHelper.GetParent(listBox); a is not null; a = VisualTreeHelper.GetParent(a))
+                {
+                    if (a is System.Windows.Controls.ScrollViewer)
+                    {
+                        lint.Add($"ListBox '{listBox.Name}' is wrapped in an outer ScrollViewer (wheel-trap)");
+                        break;
+                    }
+                }
+            }
+
+            if (child is System.Windows.Controls.TextBox box
+                && !double.IsNaN(box.Height)
+                && box.DesiredSize.Height > box.Height + 1)
+            {
+                lint.Add($"TextBox '{box.Name}' fixed Height={box.Height:0} clips content (needs {box.DesiredSize.Height:0})");
+            }
+
+            LintVisualTree(child, lint);
+        }
     }
 
     private void OpenMain(string? toolId)

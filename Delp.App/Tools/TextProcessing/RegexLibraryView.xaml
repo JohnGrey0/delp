@@ -16,8 +16,10 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                <ListBox x:Name="EntryList" SelectionChanged="EntryList_SelectionChanged">
+            <ListBox x:Name="EntryList"
+                     Grid.Column="0"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     SelectionChanged="EntryList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
@@ -28,8 +30,7 @@
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
-                </ListBox>
-            </ScrollViewer>
+            </ListBox>
 
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="DetailPanel">

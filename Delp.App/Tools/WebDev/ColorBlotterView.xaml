@@ -74,10 +74,10 @@
             <TextBlock Grid.Row="1" Style="{StaticResource Text.Section}" Margin="0,0,0,6" Text="HISTORY" />
 
             <Border Grid.Row="2" Style="{StaticResource Card.Editor}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ListBox x:Name="HistoryList"
-                             BorderThickness="0"
-                             SelectionChanged="HistoryList_SelectionChanged">
+                <ListBox x:Name="HistoryList"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         SelectionChanged="HistoryList_SelectionChanged">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="2,3">
@@ -106,8 +106,7 @@
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
-                    </ListBox>
-                </ScrollViewer>
+                </ListBox>
             </Border>
         </Grid>
     </DockPanel>

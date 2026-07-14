@@ -29,7 +29,7 @@
         <TextBlock DockPanel.Dock="Top"
                    Margin="0,0,0,10"
                    Style="{StaticResource Text.Sub}"
-                   Text="Rarely implemented — Delp generates the full RFC 9562 layout." />
+                   Text="Rarely implemented — Delp generates the full RFC 9562 layout. v2 embeds the local ID and domain over most of the timestamp, so batch entries differ only by node and clock sequence (randomized per UUID here)." />
 
         <TextBlock x:Name="ErrorText"
                    DockPanel.Dock="Bottom"

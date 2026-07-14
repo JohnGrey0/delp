@@ -1,4 +1,4 @@
-<UserControl x:Class="Delp.App.Tools.WebDev.UrlParserView"
+﻿<UserControl x:Class="Delp.App.Tools.WebDev.UrlParserView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
@@ -13,7 +13,7 @@
                  DockPanel.Dock="Bottom"
                  Style="{StaticResource TextBox.Mono}"
                  IsReadOnly="True"
-                 Height="56"
+                 MinHeight="56"
                  Margin="0,0,0,10" />
 
         <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,6">
@@ -39,7 +39,7 @@
                    Style="{StaticResource Text.Sub}"
                    Margin="0,0,0,10"
                    Visibility="Collapsed"
-                   Text="No scheme given — assumed https://." />
+                   Text="No scheme given â€” assumed https://." />
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>

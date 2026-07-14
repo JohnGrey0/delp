@@ -31,9 +31,12 @@ public partial class UuidV2View : UserControl
         if (!uint.TryParse(LocalIdBox.Text.Trim(), out var localId))
             throw new FormatException("Local ID must be a whole number from 0 to 4294967295.");
         var domain = (DceDomain)Math.Max(0, DomainCombo.SelectedIndex);
-        var node = UuidNode.RandomNode();
-        var clockSeq = UuidNode.RandomClockSequence();
-        _batch.GenerateAndRender(count, () => UuidV2.Generate(localId, domain, node, clockSeq), FormatStyle);
+        // v2's layout overwrites time_low with the local ID and clock_seq_low with the domain,
+        // so the visible timestamp only ticks every ~7 minutes. A fixed node + clock sequence
+        // would therefore render an entire batch identical — randomize both per UUID instead.
+        _batch.GenerateAndRender(count,
+            () => UuidV2.Generate(localId, domain, UuidNode.RandomNode(), UuidNode.RandomClockSequence()),
+            FormatStyle);
     });
 
     private void Option_Changed(object sender, RoutedEventArgs e)

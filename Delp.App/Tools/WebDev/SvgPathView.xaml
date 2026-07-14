@@ -1,4 +1,4 @@
-<UserControl x:Class="Delp.App.Tools.WebDev.SvgPathView"
+﻿<UserControl x:Class="Delp.App.Tools.WebDev.SvgPathView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
@@ -11,7 +11,7 @@
         <TextBox x:Name="PathBox"
                  DockPanel.Dock="Top"
                  Style="{StaticResource TextBox.Mono}"
-                 Height="80"
+                 MinHeight="80"
                  Margin="0,0,0,10"
                  TextChanged="PathBox_TextChanged" />
 

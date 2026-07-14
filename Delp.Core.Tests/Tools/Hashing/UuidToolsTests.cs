@@ -365,3 +365,45 @@ public class UuidToolsTests
         Assert.Equal("000000000000000", hex[17..]);
     }
 }
+
+public class UuidTimeBasedBatchTests
+{
+    [Fact]
+    public void V1_BatchOfHundred_AllUnique()
+    {
+        var node = UuidNode.RandomNode();
+        var clockSeq = UuidNode.RandomClockSequence();
+        var batch = Enumerable.Range(0, 100).Select(_ => UuidV1.Generate(node, clockSeq)).ToList();
+        Assert.Equal(100, batch.Distinct().Count());
+    }
+
+    [Fact]
+    public void V6_BatchOfHundred_AllUnique()
+    {
+        var node = UuidNode.RandomNode();
+        var clockSeq = UuidNode.RandomClockSequence();
+        var batch = Enumerable.Range(0, 100).Select(_ => UuidV6.Generate(node, clockSeq)).ToList();
+        Assert.Equal(100, batch.Distinct().Count());
+    }
+
+    [Fact]
+    public void V2_FixedNodeAndClockSeq_IsIdenticalWithinTimestampWindow_ByDesign()
+    {
+        // Documents WHY the view randomizes node+clockSeq per UUID: with both fixed,
+        // v2's layout leaves nothing that changes between rapid generations.
+        var node = UuidNode.RandomNode();
+        var clockSeq = UuidNode.RandomClockSequence();
+        var a = UuidV2.Generate(1000, DceDomain.Person, node, clockSeq);
+        var b = UuidV2.Generate(1000, DceDomain.Person, node, clockSeq);
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void V2_RandomNodeAndClockSeqPerUuid_BatchOfHundred_AllUnique()
+    {
+        var batch = Enumerable.Range(0, 100)
+            .Select(_ => UuidV2.Generate(1000, DceDomain.Person, UuidNode.RandomNode(), UuidNode.RandomClockSequence()))
+            .ToList();
+        Assert.Equal(100, batch.Distinct().Count());
+    }
+}
