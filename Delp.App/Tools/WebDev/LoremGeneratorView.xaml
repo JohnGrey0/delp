@@ -1,0 +1,59 @@
+<UserControl x:Class="Delp.App.Tools.WebDev.LoremGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+            <WrapPanel Margin="0,0,0,10">
+                <RadioButton x:Name="WordsRadio" Margin="0,0,16,8" Content="Words" GroupName="Unit" />
+                <RadioButton x:Name="SentencesRadio" Margin="0,0,16,8" Content="Sentences" GroupName="Unit" />
+                <RadioButton x:Name="ParagraphsRadio" Margin="0,0,16,8" Content="Paragraphs" GroupName="Unit" IsChecked="True" />
+            </WrapPanel>
+
+            <WrapPanel Margin="0,0,0,10">
+                <StackPanel Margin="0,0,20,8" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="COUNT" />
+                    <TextBox x:Name="CountBox" Width="60" Text="4" />
+                </StackPanel>
+                <CheckBox x:Name="StartClassicBox"
+                          Margin="0,0,16,8"
+                          Content="Start with 'Lorem ipsum dolor sit amet…'"
+                          IsChecked="True" />
+                <CheckBox x:Name="HtmlParagraphsBox" Margin="0,0,16,8" Content="Wrap paragraphs in &lt;p&gt;" />
+            </WrapPanel>
+
+            <Button x:Name="GenerateBtn"
+                    HorizontalAlignment="Left"
+                    Click="Generate_Click"
+                    Content="Generate"
+                    Style="{StaticResource Button.Primary}" />
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,10,0,0"
+                   Style="{StaticResource Text.Sub}" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                <Button x:Name="CopyBtn" DockPanel.Dock="Right" Content="Copy" Click="Copy_Click" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
+            </DockPanel>
+            <TextBox x:Name="OutputBox"
+                     Grid.Row="1"
+                     IsReadOnly="True"
+                     Style="{StaticResource TextBox.Mono}" />
+        </Grid>
+    </DockPanel>
+</UserControl>
