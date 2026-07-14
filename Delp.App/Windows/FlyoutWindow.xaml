@@ -29,7 +29,7 @@
                     ToolTip="Back to tool list (Esc)"
                     Click="Back_Click" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Image Source="pack://application:,,,/Assets/delp.ico" Width="17" Height="17" />
+                <Image Source="{StaticResource Logo.Drawing}" Width="17" Height="17" />
                 <TextBlock x:Name="HeaderText"
                            Margin="8,0,0,0"
                            VerticalAlignment="Center"

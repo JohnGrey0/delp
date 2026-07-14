@@ -713,6 +713,50 @@
         </Setter>
     </Style>
 
+    <!-- ============================ Logo ============================ -->
+
+    <!-- Vector logo: ring of orbital dots + geometric D. Crisp at any size;
+         the .ico is only for the tray/taskbar where Windows wants an icon. -->
+    <LinearGradientBrush x:Key="Logo.Gradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#3AA0FF" />
+        <GradientStop Offset="1" Color="#0A62E0" />
+    </LinearGradientBrush>
+
+    <DrawingImage x:Key="Logo.Drawing">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="{StaticResource Logo.Gradient}">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <EllipseGeometry Center="128,22" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="160.76,27.19" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="190.31,42.24" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="213.76,65.69" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="228.81,95.24" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="234,128" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="228.81,160.76" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="213.76,190.31" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="190.31,213.76" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="160.76,228.81" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="128,234" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="95.24,228.81" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="65.69,213.76" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="42.24,190.31" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="27.19,160.76" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="22,128" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="27.19,95.24" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="42.24,65.69" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="65.69,42.24" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="95.24,27.19" RadiusX="11" RadiusY="11" />
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="{StaticResource Logo.Gradient}"
+                                 Geometry="M 92,78 L 122,78 A 50,50 0 0 1 122,178 L 92,178 Z M 112,100 L 119,100 A 28,28 0 0 1 119,156 L 112,156 Z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
     <!-- ============================ Navigation ============================ -->
 
     <BooleanToVisibilityConverter x:Key="BoolToVis" />

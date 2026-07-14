@@ -61,7 +61,8 @@ dotnet publish Delp.App -c Release -r win-x64 --self-contained true `
   -p:PublishReadyToRun=true -p:DebugType=None `
   -p:SatelliteResourceLanguages=en -o dist\app
 cd installer
-dotnet tool run wix -- build Package.wxs -ext WixToolset.UI.wixext -arch x64 `
+dotnet tool run wix -- build Package.wxs -ext WixToolset.UI.wixext `
+  -ext WixToolset.Util.wixext -arch x64 `
   -d "PublishDir=$((Resolve-Path ..\dist\app).Path)" -o ..\dist\delp-setup.msi
 ```
 

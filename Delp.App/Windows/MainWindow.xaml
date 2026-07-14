@@ -16,7 +16,7 @@
         <!-- Custom title bar -->
         <DockPanel Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                <Image Source="pack://application:,,,/Assets/delp.ico" Width="17" Height="17" />
+                <Image Source="{StaticResource Logo.Drawing}" Width="17" Height="17" />
                 <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="Delp" />
                 <TextBlock Margin="10,1,0,0"
                            VerticalAlignment="Center"
@@ -121,10 +121,10 @@
                                 Grid.Row="0" Grid.RowSpan="2"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Image Source="pack://application:,,,/Assets/delp.ico"
-                               Width="72" Height="72"
+                        <Image Source="{StaticResource Logo.Drawing}"
+                               Width="84" Height="84"
                                HorizontalAlignment="Center"
-                               Opacity="0.9" />
+                               Opacity="0.95" />
                         <TextBlock Margin="0,18,0,0"
                                    HorizontalAlignment="Center"
                                    FontSize="22"
