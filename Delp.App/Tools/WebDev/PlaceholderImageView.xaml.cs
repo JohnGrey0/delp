@@ -30,6 +30,8 @@ public partial class PlaceholderImageView : UserControl
             Render();
         };
 
+        Unloaded += (_, _) => _debounce.Stop();
+
         Render();
     }
 

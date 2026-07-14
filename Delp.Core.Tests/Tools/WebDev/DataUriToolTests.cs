@@ -42,6 +42,24 @@ public class DataUriToolTests
         Assert.Equal(text, System.Text.Encoding.UTF8.GetString(parts.Data));
     }
 
+    [Fact]
+    public void EncodeFromBase64_BuildsSameUriAsEncode()
+    {
+        byte[] bytes = { 10, 20, 30, 255 };
+        var expected = DataUriTool.Encode(bytes, "image/png");
+
+        var actual = DataUriTool.EncodeFromBase64(Convert.ToBase64String(bytes), "image/png");
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void EncodeFromBase64_BlankMimeType_DefaultsToOctetStream()
+    {
+        var uri = DataUriTool.EncodeFromBase64("AAAA", "  ");
+        Assert.StartsWith("data:application/octet-stream;base64,AAAA", uri);
+    }
+
     [Theory]
     [InlineData("png", "image/png")]
     [InlineData(".JPG", "image/jpeg")]

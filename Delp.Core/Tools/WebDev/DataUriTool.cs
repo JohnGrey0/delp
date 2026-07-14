@@ -9,8 +9,19 @@ public static class DataUriTool
     public static string Encode(byte[] data, string mimeType)
     {
         ArgumentNullException.ThrowIfNull(data);
+        return EncodeFromBase64(Convert.ToBase64String(data), mimeType);
+    }
+
+    /// <summary>
+    /// Builds a Base64 data URI from an already Base64-encoded payload. Lets callers cache the
+    /// (potentially expensive) Base64 conversion of large unchanged byte arrays and cheaply
+    /// re-derive just the header when only the MIME type changes.
+    /// </summary>
+    public static string EncodeFromBase64(string base64Payload, string mimeType)
+    {
+        ArgumentNullException.ThrowIfNull(base64Payload);
         var mime = string.IsNullOrWhiteSpace(mimeType) ? "application/octet-stream" : mimeType.Trim();
-        return $"data:{mime};base64,{Convert.ToBase64String(data)}";
+        return $"data:{mime};base64,{base64Payload}";
     }
 
     /// <summary>Encodes text (charset=utf-8) as a data URI, either percent-encoded (default) or Base64.</summary>

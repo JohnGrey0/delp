@@ -16,6 +16,7 @@ public partial class MarkdownPreviewView : UserControl
     private readonly TextEditor _editor;
     private readonly DispatcherTimer _debounce;
     private bool _webViewReady;
+    private string? _lastRenderedHtml;
 
     private const string Sample = "# Hello, Delp\n\nType *Markdown* on the left to see a live **preview** here.\n\n- [x] Live rendering\n- [ ] Feed the cat\n\n| Feature | Status |\n| --- | --- |\n| Tables | Yes |\n";
 
@@ -36,6 +37,7 @@ public partial class MarkdownPreviewView : UserControl
         };
 
         Loaded += MarkdownPreviewView_Loaded;
+        Unloaded += (_, _) => _debounce.Stop();
     }
 
     private async void MarkdownPreviewView_Loaded(object sender, RoutedEventArgs e)
@@ -74,8 +76,14 @@ public partial class MarkdownPreviewView : UserControl
             return;
         try
         {
-            var html = MarkdownTool.ToHtml(_editor.Text);
-            Preview.CoreWebView2.NavigateToString(MarkdownTool.WrapDocument(html));
+            var html = MarkdownTool.WrapDocument(MarkdownTool.ToHtml(_editor.Text));
+            // Skip the (relatively costly) WebView2 navigation entirely when the rendered
+            // document hasn't actually changed since the last render.
+            if (html != _lastRenderedHtml)
+            {
+                Preview.CoreWebView2.NavigateToString(html);
+                _lastRenderedHtml = html;
+            }
             ErrorText.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)

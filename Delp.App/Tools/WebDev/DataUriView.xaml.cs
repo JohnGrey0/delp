@@ -14,8 +14,12 @@ namespace Delp.App.Tools.WebDev;
     Keywords = "datauri,base64,inline,image,mime", Order = 70)]
 public partial class DataUriView : UserControl
 {
+    /// <summary>Cap on decoded preview image width — a preview pane never needs full resolution.</summary>
+    private const int PreviewDecodePixelWidth = 480;
+
     private bool _updating;
     private byte[]? _fileBytes;
+    private string? _fileBase64;
     private string? _fileName;
     private byte[]? _decodedBytes;
 
@@ -56,13 +60,21 @@ public partial class DataUriView : UserControl
             await LoadFileAsync(files[0]);
     }
 
-    /// <summary>Reads the file off the UI thread — files dropped here can be large.</summary>
+    /// <summary>
+    /// Reads the file and Base64-encodes it off the UI thread — files dropped here can be
+    /// multi-MB, and Base64-encoding is cached so later MIME/option changes don't redo it.
+    /// </summary>
     private async Task LoadFileAsync(string path)
     {
         try
         {
-            var bytes = await Task.Run(() => File.ReadAllBytes(path));
+            var (bytes, base64) = await Task.Run(() =>
+            {
+                var b = File.ReadAllBytes(path);
+                return (Bytes: b, Base64: Convert.ToBase64String(b));
+            });
             _fileBytes = bytes;
+            _fileBase64 = base64;
             _fileName = Path.GetFileName(path);
             MimeBox.Text = DataUriTool.GuessMime(Path.GetExtension(path));
             FileNameText.Text = _fileBytes.LongLength > 2 * 1024 * 1024
@@ -97,13 +109,15 @@ public partial class DataUriView : UserControl
 
         if (IsFileMode)
         {
-            if (_fileBytes is null)
+            if (_fileBytes is null || _fileBase64 is null)
             {
                 EncodedBox.Text = "";
                 EncodedSizeText.Text = "";
                 return;
             }
-            uri = DataUriTool.Encode(_fileBytes, MimeBox.Text);
+            // Reuse the cached Base64 payload — the file's bytes haven't changed, only the
+            // (cheap) header, so there's no need to re-encode a potentially huge byte array.
+            uri = DataUriTool.EncodeFromBase64(_fileBase64, MimeBox.Text);
             originalSize = _fileBytes.LongLength;
         }
         else
@@ -155,6 +169,9 @@ public partial class DataUriView : UserControl
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
+                // Cap decode resolution — this is a thumbnail-scale preview, so there's no need
+                // to decode a large source image (e.g. a 50 MP photo) at full resolution.
+                bmp.DecodePixelWidth = PreviewDecodePixelWidth;
                 bmp.StreamSource = stream;
                 bmp.EndInit();
                 bmp.Freeze();
