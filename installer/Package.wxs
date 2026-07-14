@@ -8,7 +8,8 @@
            Scope="perUser"
            UpgradeCode="36197196-79de-40d2-ae46-095d12bc652d">
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Delp is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of Delp is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="DelpIcon" SourceFile="..\Delp.App\Assets\delp.ico" />
@@ -16,6 +17,22 @@
 
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <!-- "Launch Delp now" checkbox on the finish page (checked by default). -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Delp now" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[INSTALLFOLDER]delp.exe" />
+    <CustomAction Id="LaunchApplication"
+                  DllEntry="WixShellExec"
+                  Impersonate="yes"
+                  BinaryRef="Wix4UtilCA_X64" />
+    <UI>
+      <Publish Dialog="ExitDialog"
+               Control="Finish"
+               Event="DoAction"
+               Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Name="Programs">

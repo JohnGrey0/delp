@@ -73,6 +73,17 @@ public partial class App : Application
         quick.Click += (_, _) => ToggleFlyout();
         menu.Items.Add(quick);
 
+        var startup = new MenuItem();
+        void RefreshStartupHeader() =>
+            startup.Header = (StartupManager.IsEnabled() ? "✓  " : "") + "Start with Windows";
+        RefreshStartupHeader();
+        startup.Click += (_, _) =>
+        {
+            StartupManager.SetEnabled(!StartupManager.IsEnabled());
+            RefreshStartupHeader();
+        };
+        menu.Items.Add(startup);
+
         menu.Items.Add(new Separator());
 
         var exit = new MenuItem { Header = "Exit" };
