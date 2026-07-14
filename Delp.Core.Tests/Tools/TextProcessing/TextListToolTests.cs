@@ -147,9 +147,11 @@ public class TextListToolTests
     }
 
     [Fact]
-    public void Format_CSharpArray_Empty()
+    public void Format_CSharpArray_Empty_IsValidCSharp()
     {
-        Assert.Equal("new[] { }", TextListTool.Format([], ListFormat.CSharpArray, QuoteChar.Double));
+        // `new[] { }` is not valid C# (CS0826: no best type found for an implicitly-typed
+        // array with zero elements) — the empty case must use an explicitly-typed empty array.
+        Assert.Equal("Array.Empty<string>()", TextListTool.Format([], ListFormat.CSharpArray, QuoteChar.Double));
     }
 
     // ---------------------------------------------------------------- Format: SqlIn
@@ -216,7 +218,7 @@ public class TextListToolTests
     [InlineData(ListFormat.PythonList, "[]")]
     [InlineData(ListFormat.JsArray, "[]")]
     [InlineData(ListFormat.JsonArray, "[]")]
-    [InlineData(ListFormat.CSharpArray, "new[] { }")]
+    [InlineData(ListFormat.CSharpArray, "Array.Empty<string>()")]
     [InlineData(ListFormat.SqlIn, "()")]
     [InlineData(ListFormat.CsvLine, "")]
     [InlineData(ListFormat.CsvColumn, "")]
@@ -225,5 +227,80 @@ public class TextListToolTests
     public void Format_EmptyItems_ProducesEmptyContainer(ListFormat format, string expected)
     {
         Assert.Equal(expected, TextListTool.Format([], format, QuoteChar.Double));
+    }
+
+    // ---------------------------------------------------------------- Combined nasty item: quote, backslash, newline, comma
+
+    // One item carrying a double quote, a backslash, a raw newline, and a comma all at once —
+    // the sort of value that reveals half-finished escaping immediately.
+    private const string NastyItem = "a\"b\\c\nd,e";
+
+    [Fact]
+    public void Format_PythonList_NastyItem_EscapesQuoteBackslashAndNewline()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.PythonList, QuoteChar.Double);
+        Assert.Equal("[\"a\\\"b\\\\c\\nd,e\"]", result);
+    }
+
+    [Fact]
+    public void Format_JsArray_NastyItem_EscapesQuoteBackslashAndNewline()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.JsArray, QuoteChar.Double);
+        Assert.Equal("[\"a\\\"b\\\\c\\nd,e\"]", result);
+    }
+
+    [Fact]
+    public void Format_JsonArray_NastyItem_EscapesQuoteBackslashAndNewline()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.JsonArray, QuoteChar.Double);
+        Assert.Equal("[\"a\\\"b\\\\c\\nd,e\"]", result);
+    }
+
+    [Fact]
+    public void Format_CSharpArray_NastyItem_EscapesQuoteBackslashAndNewline()
+    {
+        // Before the fix this embedded a raw newline, which is a C# CS1010 ("newline in
+        // constant") compile error the moment the generated code is pasted anywhere.
+        var result = TextListTool.Format([NastyItem], ListFormat.CSharpArray, QuoteChar.Double);
+        Assert.Equal("new[] { \"a\\\"b\\\\c\\nd,e\" }", result);
+    }
+
+    [Fact]
+    public void Format_SqlIn_NastyItem_OnlyDoublesSingleQuotes()
+    {
+        // SqlIn's contract only doubles embedded single quotes; a double quote, backslash, and
+        // raw newline are all valid unescaped inside a SQL string literal, so they pass through.
+        var result = TextListTool.Format([NastyItem], ListFormat.SqlIn, QuoteChar.Double);
+        Assert.Equal("('a\"b\\c\nd,e')", result);
+    }
+
+    [Fact]
+    public void Format_CsvLine_NastyItem_QuotesAndDoublesEmbeddedQuoteOnly()
+    {
+        // RFC 4180: only the double quote needs doubling; backslash and a literal embedded
+        // newline are both legal inside a quoted CSV field.
+        var result = TextListTool.Format([NastyItem], ListFormat.CsvLine, QuoteChar.Double);
+        Assert.Equal("\"a\"\"b\\c\nd,e\"", result);
+    }
+
+    [Fact]
+    public void Format_CsvColumn_NastyItem_QuotesAndDoublesEmbeddedQuoteOnly()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.CsvColumn, QuoteChar.Double);
+        Assert.Equal("\"a\"\"b\\c\nd,e\"", result);
+    }
+
+    [Fact]
+    public void Format_PlainLines_NastyItem_PassesThroughVerbatim()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.PlainLines, QuoteChar.Double);
+        Assert.Equal(NastyItem, result);
+    }
+
+    [Fact]
+    public void Format_SpaceJoined_NastyItem_PassesThroughVerbatim()
+    {
+        var result = TextListTool.Format([NastyItem], ListFormat.SpaceJoined, QuoteChar.Double);
+        Assert.Equal(NastyItem, result);
     }
 }

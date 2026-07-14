@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.TextProcessing;
 
@@ -30,6 +31,9 @@ public partial class TextToListView : UserControl
         (QuoteChar.None, "None"),
     ];
 
+    private readonly DispatcherTimer _debounce;
+    private bool _updating;
+
     public TextToListView()
     {
         InitializeComponent();
@@ -37,6 +41,18 @@ public partial class TextToListView : UserControl
         FormatBox.SelectedIndex = 0;
         QuoteBox.ItemsSource = Quotes.Select(q => q.Label).ToList();
         QuoteBox.SelectedIndex = 0;
+
+        // Words-mode splitting is a regex scan over the whole input, so re-running it on every
+        // keystroke of a large paste would stall the UI thread; debounce like every other
+        // continuous-typing tool in the app (LineSortView, TextStatsView, ...).
+        _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _debounce.Tick += (_, _) =>
+        {
+            _debounce.Stop();
+            Run(Refresh);
+        };
+
+        Unloaded += (_, _) => _debounce.Stop();
     }
 
     private SplitMode Mode =>
@@ -53,37 +69,56 @@ public partial class TextToListView : UserControl
         if (!IsLoaded)
             return;
         DelimiterBox.Visibility = Mode == SplitMode.Delimiter ? Visibility.Visible : Visibility.Collapsed;
-        Refresh();
+        Debounce();
     }
 
     private void Option_Changed(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
-            Refresh();
+            Debounce();
     }
 
-    private void InputBox_TextChanged(object sender, TextChangedEventArgs e) => Refresh();
+    private void InputBox_TextChanged(object sender, TextChangedEventArgs e) => Debounce();
+
+    private void Debounce()
+    {
+        _debounce.Stop();
+        _debounce.Start();
+    }
 
     private void Refresh()
     {
+        var options = new TextListOptions(
+            Trim: TrimBox.IsChecked == true,
+            RemoveEmpty: RemoveEmptyBox.IsChecked == true,
+            Dedupe: DedupeBox.IsChecked == true,
+            Lowercase: LowercaseBox.IsChecked == true,
+            StripPunctuation: StripPunctuationBox.IsChecked == true);
+
+        var items = TextListTool.Split(InputBox.Text, Mode, DelimiterBox.Text, options);
+        OutputBox.Text = TextListTool.Format(items, Format, Quote);
+        StatusText.Text = $"{items.Count} item{(items.Count == 1 ? "" : "s")}";
+    }
+
+    /// <summary>Runs a render pass with reentrancy protection and inline error reporting.</summary>
+    private void Run(Action render)
+    {
+        if (_updating)
+            return;
+        _updating = true;
         try
         {
-            var options = new TextListOptions(
-                Trim: TrimBox.IsChecked == true,
-                RemoveEmpty: RemoveEmptyBox.IsChecked == true,
-                Dedupe: DedupeBox.IsChecked == true,
-                Lowercase: LowercaseBox.IsChecked == true,
-                StripPunctuation: StripPunctuationBox.IsChecked == true);
-
-            var items = TextListTool.Split(InputBox.Text, Mode, DelimiterBox.Text, options);
-            OutputBox.Text = TextListTool.Format(items, Format, Quote);
-            StatusText.Text = $"{items.Count} item{(items.Count == 1 ? "" : "s")}";
+            render();
             ErrorText.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
             ErrorText.Text = ex.Message;
             ErrorText.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _updating = false;
         }
     }
 

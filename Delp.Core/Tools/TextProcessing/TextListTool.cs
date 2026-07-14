@@ -149,7 +149,11 @@ public static class TextListTool
         open + string.Join(", ", items.Select(i => QuoteItem(i, quote))) + close;
 
     /// <summary>Wraps <paramref name="s"/> in <paramref name="quote"/> (or leaves it bare when
-    /// null), backslash-escaping any backslash and any occurrence of the active quote.</summary>
+    /// null), backslash-escaping any backslash, any occurrence of the active quote, and any raw
+    /// line-terminator/tab character. The latter matters: an unescaped newline or CR embedded
+    /// directly in a Python/JS/C# single-line string literal is a syntax error in that target
+    /// language, not just a cosmetic issue — so control characters must become `\n`/`\r`/`\t`
+    /// escapes rather than passing through verbatim.</summary>
     private static string QuoteItem(string s, char? quote)
     {
         if (quote is null)
@@ -160,17 +164,37 @@ public static class TextListTool
         sb.Append(q);
         foreach (var c in s)
         {
-            if (c == '\\' || c == q)
-                sb.Append('\\');
-            sb.Append(c);
+            switch (c)
+            {
+                case '\\':
+                    sb.Append("\\\\");
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\r':
+                    sb.Append("\\r");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                default:
+                    if (c == q)
+                        sb.Append('\\').Append(c);
+                    else
+                        sb.Append(c);
+                    break;
+            }
         }
         sb.Append(q);
         return sb.ToString();
     }
 
+    // `new[] { }` has no elements to infer an element type from, so it is not valid C#
+    // (CS0826) — the empty case needs an explicitly-typed empty array instead.
     private static string FormatCSharpArray(IReadOnlyList<string> items) =>
         items.Count == 0
-            ? "new[] { }"
+            ? "Array.Empty<string>()"
             : "new[] { " + string.Join(", ", items.Select(i => QuoteItem(i, '"'))) + " }";
 
     private static string FormatSqlIn(IReadOnlyList<string> items) =>

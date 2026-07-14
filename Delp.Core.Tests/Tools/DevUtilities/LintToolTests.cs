@@ -67,6 +67,24 @@ public class LintToolTests
         Assert.Empty(issues);
     }
 
+    /// <summary>NUglify correctly parses common modern (ES6+) syntax — arrow functions,
+    /// template literals, array destructuring-free arrow bodies — without false-positiving.
+    /// If a future NUglify version regresses here, that's the signal to downgrade affected
+    /// diagnostics to Warning rather than Error (per TOOLSPEC's honesty-about-depth note).</summary>
+    [Fact]
+    public void JavaScript_ModernSyntax_ArrowFunctionsAndTemplateLiterals_HasNoErrors()
+    {
+        const string code =
+            "const add = (a, b) => a + b;\n" +
+            "const name = \"world\";\n" +
+            "const greeting = `Hello, ${name}!`;\n" +
+            "const nums = [1, 2, 3].map(n => n * 2);\n" +
+            "console.log(greeting, add(1, 2), nums);\n";
+        var issues = LintTool.Lint(code, LintLanguage.JavaScript);
+
+        Assert.Empty(issues);
+    }
+
     // ---------------------------------------------------------------- JSON
 
     [Fact]
@@ -112,6 +130,19 @@ public class LintToolTests
     {
         var issues = LintTool.Lint("foo(bar[baz]{qux})", LintLanguage.PlainText);
         Assert.DoesNotContain(issues, i => i.Code == "BRACKET");
+    }
+
+    /// <summary>Documents a known, deliberate limitation: the generic checks are plain
+    /// character scans with no notion of string literals or comments, so a bracket character
+    /// that only exists inside a string is still counted (and can misreport imbalance). This
+    /// pins the behavior rather than letting it silently change; the UI note calls it out.</summary>
+    [Fact]
+    public void Generic_UnbalancedBracketInsideStringLiteral_IsStillFlagged_KnownLimitation()
+    {
+        const string code = "var s = \"unbalanced ( in a string\";\nvar t = 42;\n";
+        var issues = LintTool.Lint(code, LintLanguage.PlainText);
+
+        Assert.Contains(issues, i => i.Code == "BRACKET" && i.Line == 1);
     }
 
     // ---------------------------------------------------------------- Generic: mixed indentation

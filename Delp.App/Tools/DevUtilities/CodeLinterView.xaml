@@ -20,7 +20,7 @@
                    Margin="0,0,0,10"
                    Style="{StaticResource Text.Sub}"
                    TextWrapping="Wrap"
-                   Text="C#: full syntax + semantic checks (Roslyn) · JavaScript: parser diagnostics · JSON: parse validation · Python / Plain text: basic structural checks only." />
+                   Text="C#: full syntax + semantic checks (Roslyn) · JavaScript: parser diagnostics · JSON: parse validation · Python / Plain text: basic structural checks only, not string/comment-aware (e.g. brackets inside a string literal are still counted)." />
 
         <TextBlock x:Name="ErrorText"
                    DockPanel.Dock="Bottom"
