@@ -66,6 +66,7 @@
 
         <Grid>
             <ListBox x:Name="ResultsList"
+                     IsSynchronizedWithCurrentItem="False"
                      SelectionChanged="ResultsList_SelectionChanged"
                      ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.GroupStyle>

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Delp.App.Infrastructure;
 using Delp.App.Windows;
@@ -26,6 +27,13 @@ public partial class App : Application
         if (e.Args.Contains("--smoke"))
         {
             RunViewSmokeTest();
+            return;
+        }
+
+        var shotIndex = Array.IndexOf(e.Args, "--shot");
+        if (shotIndex >= 0)
+        {
+            RunWindowShot(e.Args.Length > shotIndex + 1 ? e.Args[shotIndex + 1] : null);
             return;
         }
 
@@ -118,6 +126,50 @@ public partial class App : Application
         var path = System.IO.Path.Combine(AppContext.BaseDirectory, "smoke-report.txt");
         System.IO.File.WriteAllText(path, report.ToString());
         Shutdown(failures);
+    }
+
+    /// <summary>
+    /// Headless QA mode (run with --shot [toolId]): opens the main window
+    /// (optionally with a tool selected), renders the app's own visual tree
+    /// to window-shot.png next to the exe, and exits. Renders only Delp's
+    /// UI — never the screen.
+    /// </summary>
+    private void RunWindowShot(string? toolId)
+    {
+        var window = new MainWindow();
+        if (toolId is not null)
+            window.SelectTool(toolId);
+        window.Show();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+        {
+            var width = (int)window.ActualWidth;
+            var height = (int)window.ActualHeight;
+            var root = (Visual)window.Content;
+
+            var visual = new System.Windows.Media.DrawingVisual();
+            using (var ctx = visual.RenderOpen())
+            {
+                ctx.DrawRectangle(
+                    new SolidColorBrush(Color.FromRgb(0x1E, 0x21, 0x26)), null,
+                    new Rect(0, 0, width, height));
+                ctx.DrawRectangle(
+                    new System.Windows.Media.VisualBrush(root), null,
+                    new Rect(0, 0, width, height));
+            }
+
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "window-shot.png");
+            using (var stream = System.IO.File.Create(path))
+                encoder.Save(stream);
+
+            Shutdown(0);
+        });
     }
 
     private void OpenMain(string? toolId)

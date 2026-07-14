@@ -46,6 +46,7 @@
                          TextChanged="SearchBox_TextChanged" />
                 <ListBox x:Name="NavList"
                          Padding="4,0"
+                         IsSynchronizedWithCurrentItem="False"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          SelectionChanged="NavList_SelectionChanged">
                     <ListBox.GroupStyle>

@@ -18,6 +18,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\delp.ico</ApplicationIcon>
+    <AssemblyName>delp</AssemblyName>
     <AssemblyTitle>Delp</AssemblyTitle>
     <Product>Delp</Product>
   </PropertyGroup>
