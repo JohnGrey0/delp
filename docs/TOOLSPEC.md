@@ -983,3 +983,109 @@ xxx`, or bare b64; user may not contain `:` on encode (error).
 `Text.Sub` warning: "Base64 is encoding, not encryption — only use over HTTPS."
 **Tests** RFC example (Aladdin:open sesame → QWxhZGRpbjpvcGVuIHNlc2FtZQ==),
 decode variants, colon-in-username error, unicode password round-trip.
+
+---
+
+## Batch M — Interactive & Reference Additions (mixed categories)
+
+### color-blotter — Screen Color Picker · WebDev · 15 · `eyedropper,color picker,screen,pixel,blotter`
+**Core** `ScreenColorTool` (self-contained — do NOT reference ColorTool, it may
+not exist yet): `Formats(byte r, byte g, byte b)` → record with `Hex`
+(`#RRGGBB`), `Rgb` (`rgb(r, g, b)`), `Hsl` (`hsl(h, s%, l%)` — own math,
+invariant, 1 decimal). Fully testable.
+**App layer** The picking flow (allowed exception to the UserControl-only
+rule: helper `Window` classes may live in your tool folder):
+"Pick from screen" `Button.Primary` → opens a borderless, transparent,
+topmost, full-virtual-screen overlay Window (Left/Top/Width/Height from
+`SystemParameters.VirtualScreenLeft/Top/Width/Height`, `AllowsTransparency=
+True`, `Background` = `#01000000` so it hit-tests, `Cursor=Cross`,
+`ShowInTaskbar=False`). While the mouse moves, sample the pixel under the
+cursor via P/Invoke `GetCursorPos` (physical px) + `GetDC(IntPtr.Zero)` /
+`GetPixel` / `ReleaseDC`, and show a small floating info card near the cursor
+(a `Border` inside the overlay positioned in code; remember to convert
+physical px → DIPs using `VisualTreeHelper.GetDpi` for positioning): 40×40
+swatch + live hex label. Left-click captures and closes; Esc cancels.
+Throttle sampling with a `DispatcherTimer` at ~30 ms rather than raw
+MouseMove spam.
+**UI (tool view)** the pick button + current color: big swatch (72×72) with
+HEX / RGB / HSL readonly rows + Copy each; HISTORY: session list (newest
+first, max 24) of small swatch rows — click a row to re-select, Copy per row.
+`Text.Sub` note: "Multi-monitor supported. Esc cancels picking."
+**Tests** (Core only) hex/rgb/hsl formatting knowns (pure white, black,
+#336699 → hsl(210, 50%, 40%)), rounding.
+
+### code-cheatsheet — Programming Cheat Sheet · DevUtilities · 130 · `cheatsheet,snippets,sorting,patterns,examples,learning`
+**Core** `CodeCheatSheetData.All` — static `IReadOnlyList<CheatTopic(string
+Id, string Title, string Category, string Explanation /*2-4 sentences: what it
+is, when to use, complexity where relevant*/, IReadOnlyList<CodeSnippet(string
+Language, string Code)>)>`. Minimum content (quality over stubs — every
+snippet must be correct, idiomatic, runnable-in-context code):
+- Categories & topics (≥ 18 topics): **Algorithms**: bubble sort, insertion
+  sort, merge sort, quicksort, binary search; **Data structures**: stack,
+  queue, hash map usage, linked list, binary tree + in/pre/post traversal;
+  **Language constructs**: class + inheritance, interface/trait, struct/record,
+  enum, generics, closure/lambda, error handling (try/catch + custom error),
+  async/await; **Patterns**: singleton, factory, observer, builder;
+  **Everyday**: read/write a text file, parse JSON, HTTP GET request,
+  string formatting.
+- Languages per topic: C#, Python, JavaScript, TypeScript, Java, C++, Go,
+  Rust — at least 6 of these per topic (all 8 where sensible); keep language
+  order consistent everywhere.
+Split the content across several partial-class files by category
+(CodeCheatSheetData.Algorithms.cs etc.) so no single file is enormous.
+**UI** search TextBox (matches title/category/explanation); master-detail:
+ListBox left grouped by Category; detail right: Title, Explanation
+(`Text.Sub`), then a `TabControl` — one tab per language, each a readonly
+mono pane (TextBox.Mono readonly or plain CodeEditors.Create) + Copy button.
+Remember last-selected language across topics (a static field is fine).
+**Tests** ≥18 topics, ≥6 languages per topic, language sets consistent, no
+empty/whitespace snippet, ids unique, every snippet < 60 lines, search works.
+
+### shell-cheatsheet — Shell Command Cheat Sheet · DevUtilities · 140 · `bash,powershell,linux,unix,commands,cheatsheet,terminal`
+**Core** `ShellCheatSheetData.All` — static `IReadOnlyList<ShellEntry(string
+Task /*"Find text in files recursively"*/, string Category, string Bash,
+string PowerShell, string? Notes /*gotchas, flags worth knowing*/)>`.
+≥ 70 entries across categories: Files & directories (list, find by name,
+copy/move/delete recursive, size of dir, tail/head, watch a file, symlinks,
+permissions/chmod↔icacls), Text processing (grep↔Select-String, sed-replace↔
+-replace, sort/uniq, cut/awk column, count lines, diff), Processes (list,
+kill by name/port, top), Network (open ports listening, curl↔Invoke-RestMethod,
+download file, DNS lookup, trace route, my IP), Archives (tar/zip both ways),
+Environment (vars set/read, PATH, which↔Get-Command), System (disk free,
+memory, uptime, services, scheduled tasks/cron), Git one-liners (undo last
+commit, amend, stash, prune branches), Misc (history search, aliases,
+redirect stderr, chaining, here-docs). Commands must be correct for bash and
+PowerShell 5.1+/7 respectively.
+**UI** search TextBox + category ComboBox filter; results as stacked Cards:
+task title, then two labeled mono rows `bash $` and `PS >` each with Copy,
+Notes line (`Text.Sub`) when present. Status "N of 70 shown".
+**Tests** ≥70 entries, categories non-empty, both commands non-empty for
+every entry, tasks unique, search matches task/commands, no tabs/trailing
+whitespace in commands.
+
+### text-nlp — NLP Text Processor · TextProcessing · 140 · `nlp,stopwords,stemming,tokens,ngrams,frequency`
+**Core** `NlpTool` (zero dependencies):
+`Process(string text, NlpOptions(bool Lowercase, bool RemoveStopwords,
+bool RemovePunctuation, bool RemoveNumbers, bool Stem, string?
+ExtraStopwords /*comma/space separated user additions*/))` →
+`NlpResult(string ProcessedText, IReadOnlyList<string> Tokens,
+IReadOnlyList<(string Term,int Count)> Frequencies /*desc, then alpha*/,
+int SentenceCount)`. Tokenization: unicode word boundaries (letters+digits+
+apostrophes); processed text preserves original line breaks, applies the
+pipeline in order lowercase → strip punct/numbers → stopwords → stem.
+Embedded English stopword list (~175 standard words) in NlpStopwords.cs.
+Stemming: classic **Porter stemmer**, hand-implemented faithfully (steps
+1a–5b) in PorterStemmer.cs.
+`Ngrams(IReadOnlyList<string> tokens, int n)` → `(string Gram,int Count)`
+list desc (n = 2 or 3), grams joined with a space.
+**UI** INPUT pane top (~40% height); options WrapPanel of CheckBoxes
+(lowercase, remove stopwords, remove punctuation, remove numbers, stem
+(Porter)) + "Extra stopwords" TextBox; below a TabControl: PROCESSED
+(readonly pane + Copy) | TOKENS (readonly pane, one per line, + count in tab
+header if easy — else status line) | FREQUENCIES (ItemsControl rows `term ×
+count`, top 100) | BIGRAMS (top 50) | TRIGRAMS (top 50). Live, 300 ms
+debounce. Status: "512 tokens · 289 unique · 14 sentences".
+**Tests** Porter vectors (caresses→caress, ponies→poni, relational→relat,
+conditional→condit, rational→ration, flying→fli, dies→die), stopword removal
+incl. user extras, pipeline order (stemming after stopwords), ngram counts,
+frequency ordering, empty input.
