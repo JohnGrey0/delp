@@ -1,0 +1,47 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.TextStatsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="INPUT" Style="{StaticResource Text.Section}" Margin="0,0,0,4" />
+            <TextBox x:Name="InputBox"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="110" MaxHeight="200"
+                     TextChanged="Input_Changed" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,14,0,0">
+                <TextBlock Text="STATISTICS" Style="{StaticResource Text.Section}" Margin="0,0,0,6" />
+                <ItemsControl x:Name="StatsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Label}" Foreground="{StaticResource Brush.Fg1}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Value}" Style="{StaticResource Text.Mono}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="TOP WORDS" Style="{StaticResource Text.Section}" Margin="0,16,0,6" />
+                <ItemsControl x:Name="TopWordsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Style="{StaticResource Text.Mono}" Margin="0,0,0,2" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

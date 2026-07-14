@@ -1,0 +1,50 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.CaseConvertView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="INPUT" Style="{StaticResource Text.Section}" Margin="0,0,0,4" />
+            <TextBox x:Name="InputBox"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="64" MaxHeight="120"
+                     TextChanged="InputBox_TextChanged" />
+            <TextBlock Text="RESULTS" Style="{StaticResource Text.Section}" Margin="0,14,0,4" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="ResultsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding Style}"
+                                       Style="{StaticResource Text.Section}"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Value, Mode=OneWay}"
+                                     Style="{StaticResource TextBox.Mono}"
+                                     MinHeight="0"
+                                     IsReadOnly="True"
+                                     Margin="8,0" />
+                            <Button Grid.Column="2"
+                                    Content="Copy"
+                                    Click="CopyRow_Click"
+                                    Tag="{Binding Value}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
