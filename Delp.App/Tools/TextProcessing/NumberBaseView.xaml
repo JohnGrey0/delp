@@ -1,0 +1,50 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.NumberBaseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <CheckBox x:Name="UppercaseBox" Content="Uppercase" Margin="0,0,16,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+            <CheckBox x:Name="GroupDigitsBox" Content="Group digits" Margin="0,0,16,6" Checked="Option_Changed" Unchecked="Option_Changed" />
+        </WrapPanel>
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Sub}" />
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,4,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="BINARY" Margin="0,0,0,6" />
+                <TextBox x:Name="BinaryBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,12" TextChanged="BinaryBox_TextChanged" />
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="OCTAL" Margin="0,0,0,6" />
+                <TextBox x:Name="OctalBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,12" TextChanged="OctalBox_TextChanged" />
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="DECIMAL" Margin="0,0,0,6" />
+                <TextBox x:Name="DecimalBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,12" TextChanged="DecimalBox_TextChanged" />
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="HEX" Margin="0,0,0,6" />
+                <TextBox x:Name="HexBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,12" TextChanged="HexBox_TextChanged" />
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="CUSTOM RADIX (2-36)" Margin="0,0,0,6" />
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="64" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="CustomRadixBox" Grid.Column="0" FontFamily="{StaticResource Font.Mono}" Text="36" TextChanged="CustomBox_TextChanged" />
+                    <TextBox x:Name="CustomValueBox" Grid.Column="2" FontFamily="{StaticResource Font.Mono}" TextChanged="CustomBox_TextChanged" />
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
