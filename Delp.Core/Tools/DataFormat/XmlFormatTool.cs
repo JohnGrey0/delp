@@ -35,7 +35,7 @@ public static class XmlFormatTool
             Encoding = System.Text.Encoding.UTF8,
         };
 
-        var sw = new Utf8StringWriter();
+        var sw = new DataFormatUtil.Utf8StringWriter();
         using (var writer = XmlWriter.Create(sw, settings))
             doc.Save(writer);
         return sw.ToString();
@@ -55,7 +55,7 @@ public static class XmlFormatTool
             Encoding = System.Text.Encoding.UTF8,
         };
 
-        var sw = new Utf8StringWriter();
+        var sw = new DataFormatUtil.Utf8StringWriter();
         using (var writer = XmlWriter.Create(sw, settings))
             doc.Save(writer);
         return sw.ToString();
@@ -91,16 +91,10 @@ public static class XmlFormatTool
     /// <summary>Loads XML with DTD processing prohibited and no resolver, guarding against XXE.</summary>
     private static XDocument SafeParse(string xml)
     {
-        var readerSettings = new XmlReaderSettings
-        {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            IgnoreWhitespace = true, // insignificant whitespace between tags is re-laid-out by the writer, not preserved
-        };
         try
         {
             using var stringReader = new StringReader(xml);
-            using var xmlReader = XmlReader.Create(stringReader, readerSettings);
+            using var xmlReader = XmlReader.Create(stringReader, DataFormatUtil.SafeXmlReaderSettings);
             return XDocument.Load(xmlReader, LoadOptions.None);
         }
         catch (XmlException)
@@ -112,11 +106,5 @@ public static class XmlFormatTool
             // XDocument.Load wraps some XmlReader failures (e.g. no root element) this way.
             throw new XmlException(ex.Message);
         }
-    }
-
-    /// <summary>Reports UTF-8 so the emitted declaration reads "utf-8" instead of the StringWriter default "utf-16".</summary>
-    private sealed class Utf8StringWriter : StringWriter
-    {
-        public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
     }
 }

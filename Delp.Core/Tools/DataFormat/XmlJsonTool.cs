@@ -15,7 +15,8 @@ namespace Delp.Core.Tools.DataFormat;
 /// </summary>
 public static class XmlJsonTool
 {
-    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+    /// <summary>Fixed layout for JSON → XML output; JsonToXml takes no indent option, so this never varies.</summary>
+    private static readonly XmlWriterSettings JsonToXmlWriterSettings = new() { Indent = true, IndentChars = "  ", NewLineChars = "\n" };
 
     /// <summary>
     /// Converts an XML document to JSON. The XML root element's own tag name is not
@@ -28,9 +29,8 @@ public static class XmlJsonTool
         XDocument doc;
         try
         {
-            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreWhitespace = true };
             using var stringReader = new StringReader(xml);
-            using var xmlReader = XmlReader.Create(stringReader, settings);
+            using var xmlReader = XmlReader.Create(stringReader, DataFormatUtil.SafeXmlReaderSettings);
             doc = XDocument.Load(xmlReader, LoadOptions.None);
         }
         catch (XmlException ex)
@@ -40,11 +40,8 @@ public static class XmlJsonTool
 
         var root = doc.Root ?? throw new FormatException("XML document has no root element.");
         var node = ElementToNode(root);
-        return NormalizeNewLines(node?.ToJsonString(WriteOptions) ?? "null");
+        return DataFormatUtil.NormalizeNewLines(node?.ToJsonString(DataFormatUtil.JsonWriteOptions) ?? "null");
     }
-
-    /// <summary>System.Text.Json's indented writer uses <see cref="Environment.NewLine"/>; normalize to "\n" for determinism.</summary>
-    private static string NormalizeNewLines(string text) => text.Replace("\r\n", "\n");
 
     /// <summary>Converts a JSON document to XML, wrapping it in a single root element named <paramref name="rootName"/>.</summary>
     public static string JsonToXml(string json, string rootName)
@@ -65,17 +62,10 @@ public static class XmlJsonTool
         var root = NodeToElement(string.IsNullOrWhiteSpace(rootName) ? "root" : rootName, node);
         var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
 
-        var sw = new Utf8StringWriter();
-        var writerSettings = new XmlWriterSettings { Indent = true, IndentChars = "  ", NewLineChars = "\n" };
-        using (var writer = XmlWriter.Create(sw, writerSettings))
+        var sw = new DataFormatUtil.Utf8StringWriter();
+        using (var writer = XmlWriter.Create(sw, JsonToXmlWriterSettings))
             doc.Save(writer);
         return sw.ToString();
-    }
-
-    /// <summary>Reports UTF-8 so the emitted declaration reads "utf-8" instead of the StringWriter default "utf-16".</summary>
-    private sealed class Utf8StringWriter : StringWriter
-    {
-        public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
     }
 
     private static JsonNode? ElementToNode(XElement element)

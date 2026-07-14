@@ -101,4 +101,15 @@ public class CsvJsonToolTests
     {
         Assert.Equal("[]", CsvJsonTool.CsvToJson("", new CsvOptions()));
     }
+
+    [Fact]
+    public void CsvToJson_UnicodeFieldValues_ArePreserved()
+    {
+        // BMP text (accented Latin, CJK) renders literally rather than "\uXXXX"-escaped in the
+        // converted JSON; only supplementary-plane characters (e.g. emoji) are exempt from that,
+        // since System.Text.Json always escapes surrogate pairs regardless of encoder settings.
+        const string csv = "name\nMüller 日本語\n";
+        var json = CsvJsonTool.CsvToJson(csv, new CsvOptions());
+        Assert.Contains("Müller 日本語", json);
+    }
 }

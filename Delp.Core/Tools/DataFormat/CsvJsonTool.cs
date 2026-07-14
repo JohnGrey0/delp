@@ -15,8 +15,6 @@ public sealed record CsvOptions(char? Delimiter = null, bool HasHeader = true, b
 /// <summary>Converts between CSV and JSON via CsvHelper, with delimiter auto-detection and type inference.</summary>
 public static class CsvJsonTool
 {
-    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
-
     public static string CsvToJson(string csv, CsvOptions options)
     {
         ArgumentNullException.ThrowIfNull(csv);
@@ -71,7 +69,7 @@ public static class CsvJsonTool
             result.Add(obj);
         }
 
-        return NormalizeNewLines(result.ToJsonString(WriteOptions));
+        return DataFormatUtil.NormalizeNewLines(result.ToJsonString(DataFormatUtil.JsonWriteOptions));
     }
 
     public static string JsonToCsv(string json, char delimiter)
@@ -141,7 +139,4 @@ public static class CsvJsonTool
 
     private static string StripBom(string text) =>
         text.Length > 0 && text[0] == '\ufeff' ? text[1..] : text;
-
-    /// <summary>System.Text.Json's indented writer uses <see cref="Environment.NewLine"/>; normalize to "\n" for determinism.</summary>
-    private static string NormalizeNewLines(string text) => text.Replace("\r\n", "\n");
 }

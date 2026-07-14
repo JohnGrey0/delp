@@ -14,16 +14,20 @@ public sealed record GraphQlError(int Line, int Column, string Message);
 /// </summary>
 public static class GraphQlTool
 {
+    /// <summary>
+    /// Fixed print layout — spec calls for 2-space indent, so this never varies between calls.
+    /// <see cref="SDLPrinter"/> keeps no mutable instance state (all per-print state lives in the
+    /// context object threaded through each call), so one shared instance is safe to reuse,
+    /// including concurrently from multiple background formatting calls.
+    /// </summary>
+    private static readonly SDLPrinter Printer = new(new SDLPrinterOptions { IndentSize = 2 });
+
     public static string Format(string graphQl)
     {
         ArgumentNullException.ThrowIfNull(graphQl);
         var document = ParseOrThrowFormatException(graphQl);
-        var printer = new SDLPrinter(new SDLPrinterOptions { IndentSize = 2 });
-        return NormalizeNewLines(printer.Print(document));
+        return DataFormatUtil.NormalizeNewLines(Printer.Print(document));
     }
-
-    /// <summary>SDLPrinter writes <see cref="Environment.NewLine"/>; normalize to "\n" for determinism.</summary>
-    private static string NormalizeNewLines(string text) => text.Replace("\r\n", "\n");
 
     /// <summary>Strips insignificant whitespace and comments, keeping the document on as few lines as possible.</summary>
     public static string Minify(string graphQl)

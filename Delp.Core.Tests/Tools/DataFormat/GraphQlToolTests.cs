@@ -76,4 +76,12 @@ public class GraphQlToolTests
     {
         Assert.Equal("", GraphQlTool.Format(""));
     }
+
+    [Fact]
+    public void Format_UnicodeStringArgument_IsPreserved()
+    {
+        const string query = "query { greet(name: \"Müller 日本語 🎉\") }";
+        var result = GraphQlTool.Format(query);
+        Assert.Contains("Müller 日本語 🎉", result);
+    }
 }

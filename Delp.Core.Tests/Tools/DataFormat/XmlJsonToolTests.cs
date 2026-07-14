@@ -82,4 +82,22 @@ public class XmlJsonToolTests
     {
         Assert.Throws<FormatException>(() => XmlJsonTool.JsonToXml("{not json", "root"));
     }
+
+    [Fact]
+    public void XmlToJson_UnicodeTextContent_IsPreserved()
+    {
+        // BMP text (accented Latin, CJK) renders literally rather than "\uXXXX"-escaped in the
+        // converted JSON; only supplementary-plane characters (e.g. emoji) are exempt from that,
+        // since System.Text.Json always escapes surrogate pairs regardless of encoder settings.
+        const string xml = "<root><name>Müller 日本語</name></root>";
+        var json = XmlJsonTool.XmlToJson(xml);
+        Assert.Contains("Müller 日本語", json);
+    }
+
+    [Fact]
+    public void JsonToXml_UnicodeValue_IsPreserved()
+    {
+        var xml = XmlJsonTool.JsonToXml("{\"name\":\"Müller 日本語 🎉\"}", "root");
+        Assert.Contains("Müller 日本語 🎉", xml);
+    }
 }

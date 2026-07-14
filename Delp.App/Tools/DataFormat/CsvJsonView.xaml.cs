@@ -19,6 +19,7 @@ public partial class CsvJsonView : UserControl
     private readonly DispatcherTimer _debounce;
     private bool _updating;
     private bool _fromCsv = true;
+    private int _token;
 
     public CsvJsonView()
     {
@@ -30,10 +31,18 @@ public partial class CsvJsonView : UserControl
         JsonHost.Child = _json;
 
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
-        _debounce.Tick += (_, _) => { _debounce.Stop(); Convert(); };
+        _debounce.Tick += async (_, _) => { _debounce.Stop(); await ConvertAsync(); };
 
         _csv.TextChanged += (_, _) => Schedule(fromCsv: true);
         _json.TextChanged += (_, _) => Schedule(fromCsv: false);
+
+        // Stop pending work when navigated away so a cached-but-hidden view doesn't keep
+        // computing/writing to itself; also invalidate any conversion already in flight.
+        Unloaded += (_, _) =>
+        {
+            _debounce.Stop();
+            _token++;
+        };
     }
 
     private char? SelectedDelimiter =>
@@ -54,24 +63,61 @@ public partial class CsvJsonView : UserControl
         if (IsLoaded) Schedule(_fromCsv);
     }
 
-    private void Convert()
+    /// <summary>Parsing/re-serializing megabyte-scale CSV or JSON runs off the UI thread so typing stays responsive.</summary>
+    private async Task ConvertAsync()
     {
-        if (_fromCsv)
-            Run(() => _json.Text = CsvJsonTool.CsvToJson(_csv.Text, Options));
-        else
-            Run(() => _csv.Text = CsvJsonTool.JsonToCsv(_json.Text, SelectedDelimiter ?? ','));
-        UpdateStatus();
+        var fromCsv = _fromCsv;
+        var options = Options; // read UI state before hopping off the UI thread
+        var delimiter = SelectedDelimiter ?? ',';
+        var csvText = _csv.Text;
+        var jsonText = _json.Text;
+        var token = ++_token;
+
+        string result;
+        string status;
+        try
+        {
+            (result, status) = await Task.Run(() =>
+            {
+                if (fromCsv)
+                {
+                    var json = CsvJsonTool.CsvToJson(csvText, options);
+                    return (json, ComputeStatus(json));
+                }
+                var csv = CsvJsonTool.JsonToCsv(jsonText, delimiter);
+                return (csv, ComputeStatus(jsonText));
+            });
+        }
+        catch (Exception ex)
+        {
+            if (token != _token) return;
+            ErrorText.Text = ex.Message;
+            ErrorText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (token != _token) return; // superseded by a newer edit while this conversion was running
+
+        _updating = true; // suppress the TextChanged this write triggers on the box we're about to fill
+        try
+        {
+            if (fromCsv) _json.Text = result; else _csv.Text = result;
+            ErrorText.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            _updating = false;
+        }
+        StatusText.Text = status;
     }
 
-    private void UpdateStatus()
+    /// <summary>Pure, off-UI-thread-safe status computation; "" when the JSON isn't a non-empty array.</summary>
+    private static string ComputeStatus(string json)
     {
         try
         {
-            if (JsonNode.Parse(_json.Text) is not JsonArray array || array.Count == 0)
-            {
-                StatusText.Text = "";
-                return;
-            }
+            if (JsonNode.Parse(json) is not JsonArray array || array.Count == 0)
+                return "";
 
             var columns = new HashSet<string>();
             foreach (var item in array)
@@ -79,36 +125,15 @@ public partial class CsvJsonView : UserControl
                     foreach (var kv in obj)
                         columns.Add(kv.Key);
 
-            StatusText.Text = $"{array.Count} rows × {columns.Count} columns";
+            return $"{array.Count} rows × {columns.Count} columns";
         }
         catch
         {
-            StatusText.Text = "";
+            return "";
         }
     }
 
     private void CopyCsv_Click(object sender, RoutedEventArgs e) => Ui.Copy(_csv.Text, CopyCsvBtn);
 
     private void CopyJson_Click(object sender, RoutedEventArgs e) => Ui.Copy(_json.Text, CopyJsonBtn);
-
-    /// <summary>Runs a conversion with reentrancy protection and inline error reporting.</summary>
-    private void Run(Action convert)
-    {
-        if (_updating) return;
-        _updating = true;
-        try
-        {
-            convert();
-            ErrorText.Visibility = Visibility.Collapsed;
-        }
-        catch (Exception ex)
-        {
-            ErrorText.Text = ex.Message;
-            ErrorText.Visibility = Visibility.Visible;
-        }
-        finally
-        {
-            _updating = false;
-        }
-    }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -17,6 +18,8 @@ public partial class XmlFormatView : UserControl
     private readonly TextEditor _input;
     private readonly TextEditor _output;
     private readonly DispatcherTimer _validateTimer;
+    private int _validateToken;
+    private int _formatToken;
 
     public XmlFormatView()
     {
@@ -28,12 +31,21 @@ public partial class XmlFormatView : UserControl
         OutputHost.Child = _output;
 
         _validateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
-        _validateTimer.Tick += (_, _) => { _validateTimer.Stop(); Validate(); };
+        _validateTimer.Tick += async (_, _) => { _validateTimer.Stop(); await ValidateAsync(); };
 
         _input.TextChanged += (_, _) =>
         {
             _validateTimer.Stop();
             _validateTimer.Start();
+        };
+
+        // Stop pending work when navigated away so a cached-but-hidden view doesn't keep
+        // computing/writing to itself; also invalidate any validation/format already in flight.
+        Unloaded += (_, _) =>
+        {
+            _validateTimer.Stop();
+            _validateToken++;
+            _formatToken++;
         };
     }
 
@@ -43,20 +55,26 @@ public partial class XmlFormatView : UserControl
         {
             var tag = (IndentCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? "2";
             var useTabs = tag == "tab";
-            var indentSize = useTabs ? 2 : int.Parse(tag);
+            var indentSize = useTabs ? 2 : int.Parse(tag, CultureInfo.InvariantCulture);
             return new XmlFormatOptions(indentSize, useTabs, OmitDeclarationBox.IsChecked == true);
         }
     }
 
-    private void Validate()
+    /// <summary>Parsing megabyte-scale XML is noticeable on the UI thread, so validation runs on the thread pool.</summary>
+    private async Task ValidateAsync()
     {
-        if (_input.Text.Trim().Length == 0)
+        var text = _input.Text;
+        if (text.Trim().Length == 0)
         {
             ValidityText.Text = "";
             return;
         }
 
-        var error = XmlFormatTool.Validate(_input.Text);
+        var token = ++_validateToken;
+        var error = await Task.Run(() => XmlFormatTool.Validate(text));
+        if (token != _validateToken)
+            return; // superseded by a newer edit while this validation was running
+
         if (error is null)
         {
             ValidityText.Text = "Valid XML";
@@ -69,35 +87,43 @@ public partial class XmlFormatView : UserControl
         }
     }
 
-    private void Format_Click(object sender, RoutedEventArgs e) => RunFormat();
+    private void Format_Click(object sender, RoutedEventArgs e) => _ = RunFormatAsync();
 
-    private void Minify_Click(object sender, RoutedEventArgs e) =>
-        Run(() => _output.Text = XmlFormatTool.Minify(_input.Text));
+    private void Minify_Click(object sender, RoutedEventArgs e) => _ = RunAsync(XmlFormatTool.Minify);
 
     private void IndentCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (IsLoaded) RunFormat();
+        if (IsLoaded) _ = RunFormatAsync();
     }
 
     private void Option_Changed(object sender, RoutedEventArgs e)
     {
-        if (IsLoaded) RunFormat();
+        if (IsLoaded) _ = RunFormatAsync();
     }
 
-    private void RunFormat() => Run(() => _output.Text = XmlFormatTool.Format(_input.Text, Options));
+    private Task RunFormatAsync()
+    {
+        var options = Options; // read UI state before hopping off the UI thread
+        return RunAsync(text => XmlFormatTool.Format(text, options));
+    }
 
     private void Copy_Click(object sender, RoutedEventArgs e) => Ui.Copy(_output.Text, CopyBtn);
 
-    /// <summary>Runs a conversion with inline error reporting.</summary>
-    private void Run(Action convert)
+    /// <summary>Runs a conversion on the thread pool (safe for 1MB+ input) with inline error reporting.</summary>
+    private async Task RunAsync(Func<string, string> convert)
     {
+        var text = _input.Text;
+        var token = ++_formatToken;
         try
         {
-            convert();
+            var result = await Task.Run(() => convert(text));
+            if (token != _formatToken) return;
+            _output.Text = result;
             ErrorText.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
+            if (token != _formatToken) return;
             ErrorText.Text = ex.Message;
             ErrorText.Visibility = Visibility.Visible;
         }

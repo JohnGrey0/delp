@@ -93,4 +93,12 @@ public class XmlFormatToolTests
     {
         Assert.Throws<FormatException>(() => XmlFormatTool.Format("", new XmlFormatOptions()));
     }
+
+    [Fact]
+    public void Format_PreservesUnicodeContent()
+    {
+        const string xml = "<root><name>Müller 日本語 🎉</name></root>";
+        var result = XmlFormatTool.Format(xml, new XmlFormatOptions(OmitDeclaration: true));
+        Assert.Contains("Müller 日本語 🎉", result);
+    }
 }

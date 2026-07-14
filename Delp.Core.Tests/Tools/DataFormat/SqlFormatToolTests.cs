@@ -135,4 +135,12 @@ public class SqlFormatToolTests
     {
         Assert.Empty(SqlFormatTool.Format("", Default));
     }
+
+    [Fact]
+    public void Format_UnicodeStringLiteral_IsPreservedVerbatim()
+    {
+        const string sql = "SELECT * FROM users WHERE name = 'Müller 日本語 🎉';";
+        var result = SqlFormatTool.Format(sql, Default);
+        Assert.Contains("'Müller 日本語 🎉'", result);
+    }
 }

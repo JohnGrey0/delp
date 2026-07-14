@@ -18,6 +18,7 @@ public partial class XmlJsonView : UserControl
     private readonly DispatcherTimer _debounce;
     private bool _updating;
     private bool _fromXml = true;
+    private int _token;
 
     public XmlJsonView()
     {
@@ -29,10 +30,18 @@ public partial class XmlJsonView : UserControl
         JsonHost.Child = _json;
 
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
-        _debounce.Tick += (_, _) => { _debounce.Stop(); Convert(); };
+        _debounce.Tick += async (_, _) => { _debounce.Stop(); await ConvertAsync(); };
 
         _xml.TextChanged += (_, _) => Schedule(fromXml: true);
         _json.TextChanged += (_, _) => Schedule(fromXml: false);
+
+        // Stop pending work when navigated away so a cached-but-hidden view doesn't keep
+        // computing/writing to itself; also invalidate any conversion already in flight.
+        Unloaded += (_, _) =>
+        {
+            _debounce.Stop();
+            _token++;
+        };
     }
 
     private void Schedule(bool fromXml)
@@ -49,36 +58,45 @@ public partial class XmlJsonView : UserControl
         if (IsLoaded) Schedule(fromXml: false);
     }
 
-    private void Convert()
+    /// <summary>Parsing/re-serializing megabyte-scale documents runs off the UI thread so typing stays responsive.</summary>
+    private async Task ConvertAsync()
     {
-        if (_fromXml)
-            Run(() => _json.Text = XmlJsonTool.XmlToJson(_xml.Text));
-        else
-            Run(() => _xml.Text = XmlJsonTool.JsonToXml(_json.Text, string.IsNullOrWhiteSpace(RootNameBox.Text) ? "root" : RootNameBox.Text));
-    }
+        var fromXml = _fromXml;
+        var xmlText = _xml.Text;
+        var jsonText = _json.Text;
+        var rootName = string.IsNullOrWhiteSpace(RootNameBox.Text) ? "root" : RootNameBox.Text;
+        var token = ++_token;
 
-    private void CopyXml_Click(object sender, RoutedEventArgs e) => Ui.Copy(_xml.Text, CopyXmlBtn);
-
-    private void CopyJson_Click(object sender, RoutedEventArgs e) => Ui.Copy(_json.Text, CopyJsonBtn);
-
-    /// <summary>Runs a conversion with reentrancy protection and inline error reporting.</summary>
-    private void Run(Action convert)
-    {
-        if (_updating) return;
-        _updating = true;
+        string result;
         try
         {
-            convert();
-            ErrorText.Visibility = Visibility.Collapsed;
+            result = await Task.Run(() => fromXml
+                ? XmlJsonTool.XmlToJson(xmlText)
+                : XmlJsonTool.JsonToXml(jsonText, rootName));
         }
         catch (Exception ex)
         {
+            if (token != _token) return;
             ErrorText.Text = ex.Message;
             ErrorText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (token != _token) return; // superseded by a newer edit while this conversion was running
+
+        _updating = true; // suppress the TextChanged this write triggers on the box we're about to fill
+        try
+        {
+            if (fromXml) _json.Text = result; else _xml.Text = result;
+            ErrorText.Visibility = Visibility.Collapsed;
         }
         finally
         {
             _updating = false;
         }
     }
+
+    private void CopyXml_Click(object sender, RoutedEventArgs e) => Ui.Copy(_xml.Text, CopyXmlBtn);
+
+    private void CopyJson_Click(object sender, RoutedEventArgs e) => Ui.Copy(_json.Text, CopyJsonBtn);
 }
