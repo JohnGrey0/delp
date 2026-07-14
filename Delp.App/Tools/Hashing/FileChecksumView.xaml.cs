@@ -29,16 +29,12 @@ public partial class FileChecksumView : UserControl
             _ = HashFileAsync(dialog.FileName);
     }
 
-    private void DropZone_PreviewDragOver(object sender, DragEventArgs e)
-    {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
-        e.Handled = true;
-    }
+    private void DropZone_PreviewDragOver(object sender, DragEventArgs e) => FileDropSupport.PreviewDragOver(e);
 
     private void DropZone_Drop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files)
-            _ = HashFileAsync(files[0]);
+        if (FileDropSupport.GetDroppedFile(e) is { } path)
+            _ = HashFileAsync(path);
     }
 
     private void AlgoCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

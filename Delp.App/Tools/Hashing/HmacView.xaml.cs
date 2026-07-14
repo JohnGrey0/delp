@@ -11,6 +11,7 @@ namespace Delp.App.Tools.Hashing;
 public partial class HmacView : UserControl
 {
     private bool _updating;
+    private byte[] _hash = [];
 
     public HmacView()
     {
@@ -31,15 +32,24 @@ public partial class HmacView : UserControl
 
     private static string? SelectedContent(ComboBox combo) => (combo.SelectedItem as ComboBoxItem)?.Content as string;
 
-    private void KeyBox_TextChanged(object sender, TextChangedEventArgs e) => OnChanged();
+    private void KeyBox_TextChanged(object sender, TextChangedEventArgs e) => OnInputChanged();
 
-    private void MessageBox_TextChanged(object sender, TextChangedEventArgs e) => OnChanged();
+    private void MessageBox_TextChanged(object sender, TextChangedEventArgs e) => OnInputChanged();
 
-    private void Combo_SelectionChanged(object sender, SelectionChangedEventArgs e) => OnChanged();
+    private void Combo_SelectionChanged(object sender, SelectionChangedEventArgs e) => OnInputChanged();
 
-    private void OutputFormat_Changed(object sender, RoutedEventArgs e) => OnChanged();
+    // Hex/Base64 is purely a display format for the already-computed digest — reformat the
+    // cached hash instead of re-running the HMAC over the key/message again. If the key/message
+    // are currently invalid (error banner showing), the cached hash is stale, so fall back to a
+    // full recompute rather than silently redisplaying an old digest.
+    private void OutputFormat_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+        Run(ErrorText.Visibility == Visibility.Visible ? Compute : RenderOutput);
+    }
 
-    private void OnChanged()
+    private void OnInputChanged()
     {
         if (IsLoaded)
             Run(Compute);
@@ -51,11 +61,15 @@ public partial class HmacView : UserControl
 
         var key = HmacTool.ParseInput(KeyBox.Text, KeyFormat);
         var message = System.Text.Encoding.UTF8.GetBytes(MessageBox.Text);
-        var hash = HmacTool.Compute(Algorithm, key, message);
+        _hash = HmacTool.Compute(Algorithm, key, message);
+        RenderOutput();
+    }
 
+    private void RenderOutput()
+    {
         OutputBox.Text = OutputAsBase64
-            ? Convert.ToBase64String(hash)
-            : Convert.ToHexString(hash).ToLowerInvariant();
+            ? Convert.ToBase64String(_hash)
+            : Convert.ToHexString(_hash).ToLowerInvariant();
     }
 
     private void CopyOutput_Click(object sender, RoutedEventArgs e) => Ui.Copy(OutputBox.Text, CopyOutputBtn);

@@ -31,6 +31,9 @@ public partial class HashGeneratorView : UserControl
 
     private void InputBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        // Bump the generation token so a file hash still running in the background can't
+        // land after this text result and clobber the rows the user is now looking at.
+        _computeToken++;
         if (_filePath is not null)
         {
             _filePath = null;
@@ -78,16 +81,12 @@ public partial class HashGeneratorView : UserControl
             _ = HashFileAsync(dialog.FileName);
     }
 
-    private void InputBox_PreviewDragOver(object sender, DragEventArgs e)
-    {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
-        e.Handled = true;
-    }
+    private void InputBox_PreviewDragOver(object sender, DragEventArgs e) => FileDropSupport.PreviewDragOver(e);
 
     private void InputBox_Drop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files)
-            _ = HashFileAsync(files[0]);
+        if (FileDropSupport.GetDroppedFile(e) is { } path)
+            _ = HashFileAsync(path);
     }
 
     private async Task HashFileAsync(string path)

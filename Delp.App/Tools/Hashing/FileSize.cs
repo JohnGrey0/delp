@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Delp.App.Tools.Hashing;
 
 /// <summary>Human-readable byte-count formatting shared by the file-based hashing tools.</summary>
@@ -13,6 +15,8 @@ internal static class FileSize
             size /= 1024;
             unit++;
         }
-        return unit == 0 ? $"{bytes} B" : $"{size:0.##} {units[unit]}";
+        return unit == 0
+            ? $"{bytes} B"
+            : $"{size.ToString("0.##", CultureInfo.InvariantCulture)} {units[unit]}";
     }
 }

@@ -35,7 +35,7 @@ internal static class HashAlgorithms
     };
 
     /// <summary>Creates a disposable incremental hasher for the given algorithm (used for stream hashing).</summary>
-    public static System.Security.Cryptography.HashAlgorithm Create(string algorithm) => Normalize(algorithm) switch
+    public static HashAlgorithm Create(string algorithm) => Normalize(algorithm) switch
     {
         "MD5" => MD5.Create(),
         "SHA1" => SHA1.Create(),
