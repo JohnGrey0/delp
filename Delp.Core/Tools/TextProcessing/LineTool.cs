@@ -75,11 +75,25 @@ public static class LineTool
     {
         SortMode.Asc => lines.OrderBy(l => l, ci ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal).ToList(),
         SortMode.Desc => lines.OrderByDescending(l => l, ci ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal).ToList(),
-        SortMode.Natural => lines.OrderBy(l => l, Comparer<string>.Create((a, b) => CompareNatural(a, b, ci))).ToList(),
+        SortMode.Natural => SortNatural(lines, ci),
         SortMode.Length => lines.OrderBy(l => l.Length).ToList(),
         SortMode.Numeric => SortNumeric(lines),
         _ => lines,
     };
+
+    /// <summary>
+    /// Natural sort: each line's digit/non-digit chunks are extracted once up front
+    /// (rather than re-running the chunk regex inside the comparer on every pairwise
+    /// comparison during the O(n log n) sort) and compared chunk-by-chunk.
+    /// </summary>
+    private static List<string> SortNatural(List<string> lines, bool ci)
+    {
+        var comparer = Comparer<string[]>.Create((a, b) => CompareNaturalChunks(a, b, ci));
+        return lines
+            // LINQ's OrderBy is a stable sort (matching Asc/Desc below); List<T>.Sort is not.
+            .OrderBy(l => NaturalChunk.Matches(l).Select(m => m.Value).ToArray(), comparer)
+            .ToList();
+    }
 
     private static List<string> SortNumeric(List<string> lines)
     {
@@ -96,15 +110,13 @@ public static class LineTool
         return numeric.OrderBy(x => x.Value).Select(x => x.Line).Concat(nonNumeric).ToList();
     }
 
-    private static int CompareNatural(string a, string b, bool ci)
+    private static int CompareNaturalChunks(string[] chunksA, string[] chunksB, bool ci)
     {
-        var ma = NaturalChunk.Matches(a);
-        var mb = NaturalChunk.Matches(b);
-        var n = Math.Min(ma.Count, mb.Count);
+        var n = Math.Min(chunksA.Length, chunksB.Length);
         for (var i = 0; i < n; i++)
         {
-            var ca = ma[i].Value;
-            var cb = mb[i].Value;
+            var ca = chunksA[i];
+            var cb = chunksB[i];
             var isDigitA = char.IsDigit(ca[0]);
             var isDigitB = char.IsDigit(cb[0]);
             int cmp;
@@ -127,7 +139,7 @@ public static class LineTool
             if (cmp != 0)
                 return cmp;
         }
-        return ma.Count.CompareTo(mb.Count);
+        return chunksA.Length.CompareTo(chunksB.Length);
     }
 
     private static List<string> Dedupe(List<string> lines, bool ci)

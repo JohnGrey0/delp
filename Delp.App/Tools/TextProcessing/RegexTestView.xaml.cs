@@ -15,6 +15,7 @@ namespace Delp.App.Tools.TextProcessing;
 public partial class RegexTestView : UserControl
 {
     private const int MaxInputLength = 1_000_000; // ~1 MB of chars, per the perf note in the spec
+    private const int MaxRenderedMatches = 1000; // cap so a pathological match count can't hang the UI thread
 
     private readonly DispatcherTimer _debounce;
     private bool _updating;
@@ -79,8 +80,11 @@ public partial class RegexTestView : UserControl
 
         RenderMatchesView(text, result.Matches);
         RenderMatchesList(result.Matches);
+        var matchNote = result.Matches.Count > MaxRenderedMatches
+            ? $" (showing first {MaxRenderedMatches} of {result.Matches.Count})"
+            : "";
         StatusText.Text =
-            $"{result.Matches.Count} match{(result.Matches.Count == 1 ? "" : "es")} in {sw.ElapsedMilliseconds} ms{truncationNote}";
+            $"{result.Matches.Count} match{(result.Matches.Count == 1 ? "" : "es")} in {sw.ElapsedMilliseconds} ms{truncationNote}{matchNote}";
 
         var replaceResult = RegexTool.Replace(pattern, text, ReplacementBox.Text ?? "", options);
         ReplaceResultBox.Text = replaceResult.Error ?? replaceResult.Result ?? "";
@@ -108,7 +112,10 @@ public partial class RegexTestView : UserControl
             var useAlternate = false;
             int? previousEnd = null;
 
-            foreach (var m in matches.OrderBy(m => m.Index))
+            // Cap highlighted runs so a pathological match count (e.g. an empty-width
+            // pattern over a 1 MB input) can't force thousands of Run/Inline objects
+            // into the FlowDocument and hang the UI thread.
+            foreach (var m in matches.OrderBy(m => m.Index).Take(MaxRenderedMatches))
             {
                 if (m.Index > cursor)
                     paragraph.Inlines.Add(new Run(text.Substring(cursor, m.Index - cursor)));
@@ -137,7 +144,11 @@ public partial class RegexTestView : UserControl
     {
         MatchesList.Items.Clear();
 
-        for (var i = 0; i < matches.Count; i++)
+        // Cap the number of match panels actually built: with 100k+ matches, even
+        // WPF's virtualized ListBox would have to allocate every item up front here
+        // since each entry is a pre-built panel, not a lazily-templated data row.
+        var shown = Math.Min(matches.Count, MaxRenderedMatches);
+        for (var i = 0; i < shown; i++)
         {
             var m = matches[i];
             var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
@@ -161,6 +172,16 @@ public partial class RegexTestView : UserControl
             }
 
             MatchesList.Items.Add(panel);
+        }
+
+        if (matches.Count > MaxRenderedMatches)
+        {
+            MatchesList.Items.Add(new TextBlock
+            {
+                Text = $"…showing {MaxRenderedMatches} of {matches.Count} matches",
+                Style = (Style)FindResource("Text.Sub"),
+                Margin = new Thickness(0, 4, 0, 0),
+            });
         }
     }
 

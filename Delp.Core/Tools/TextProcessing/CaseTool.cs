@@ -53,9 +53,10 @@ public static class CaseTool
     private static string Capitalize(string token) =>
         token.Length == 0 ? token : char.ToUpperInvariant(token[0]) + token[1..];
 
-    public static string ToCamelCase(string? input)
+    public static string ToCamelCase(string? input) => ToCamelCase(Tokenize(input));
+
+    private static string ToCamelCase(IReadOnlyList<string> tokens)
     {
-        var tokens = Tokenize(input);
         if (tokens.Count == 0)
             return "";
         var sb = new StringBuilder(tokens[0]);
@@ -64,27 +65,40 @@ public static class CaseTool
         return sb.ToString();
     }
 
-    public static string ToPascalCase(string? input) =>
-        string.Concat(Tokenize(input).Select(Capitalize));
+    public static string ToPascalCase(string? input) => ToPascalCase(Tokenize(input));
 
-    public static string ToSnakeCase(string? input) =>
-        string.Join("_", Tokenize(input));
+    private static string ToPascalCase(IReadOnlyList<string> tokens) =>
+        string.Concat(tokens.Select(Capitalize));
 
-    public static string ToScreamingSnakeCase(string? input) =>
-        string.Join("_", Tokenize(input).Select(t => t.ToUpperInvariant()));
+    public static string ToSnakeCase(string? input) => ToSnakeCase(Tokenize(input));
 
-    public static string ToKebabCase(string? input) =>
-        string.Join("-", Tokenize(input));
+    private static string ToSnakeCase(IReadOnlyList<string> tokens) =>
+        string.Join("_", tokens);
 
-    public static string ToTrainCase(string? input) =>
-        string.Join("-", Tokenize(input).Select(Capitalize));
+    public static string ToScreamingSnakeCase(string? input) => ToScreamingSnakeCase(Tokenize(input));
 
-    public static string ToTitleCase(string? input) =>
-        string.Join(" ", Tokenize(input).Select(Capitalize));
+    private static string ToScreamingSnakeCase(IReadOnlyList<string> tokens) =>
+        string.Join("_", tokens.Select(t => t.ToUpperInvariant()));
 
-    public static string ToSentenceCase(string? input)
+    public static string ToKebabCase(string? input) => ToKebabCase(Tokenize(input));
+
+    private static string ToKebabCase(IReadOnlyList<string> tokens) =>
+        string.Join("-", tokens);
+
+    public static string ToTrainCase(string? input) => ToTrainCase(Tokenize(input));
+
+    private static string ToTrainCase(IReadOnlyList<string> tokens) =>
+        string.Join("-", tokens.Select(Capitalize));
+
+    public static string ToTitleCase(string? input) => ToTitleCase(Tokenize(input));
+
+    private static string ToTitleCase(IReadOnlyList<string> tokens) =>
+        string.Join(" ", tokens.Select(Capitalize));
+
+    public static string ToSentenceCase(string? input) => ToSentenceCase(Tokenize(input));
+
+    private static string ToSentenceCase(IReadOnlyList<string> tokens)
     {
-        var tokens = Tokenize(input);
         if (tokens.Count == 0)
             return "";
         var sb = new StringBuilder(Capitalize(tokens[0]));
@@ -93,32 +107,48 @@ public static class CaseTool
         return sb.ToString();
     }
 
-    public static string ToLowercase(string? input) =>
-        string.Join(" ", Tokenize(input));
+    public static string ToLowercase(string? input) => ToLowercase(Tokenize(input));
 
-    public static string ToUppercase(string? input) =>
-        string.Join(" ", Tokenize(input).Select(t => t.ToUpperInvariant()));
+    private static string ToLowercase(IReadOnlyList<string> tokens) =>
+        string.Join(" ", tokens);
 
-    public static string ToDotCase(string? input) =>
-        string.Join(".", Tokenize(input));
+    public static string ToUppercase(string? input) => ToUppercase(Tokenize(input));
 
-    public static string ToPathCase(string? input) =>
-        string.Join("/", Tokenize(input));
+    private static string ToUppercase(IReadOnlyList<string> tokens) =>
+        string.Join(" ", tokens.Select(t => t.ToUpperInvariant()));
 
-    /// <summary>Renders every supported style, in the order the UI lists them.</summary>
-    public static IReadOnlyList<CaseResult> ConvertAll(string? input) =>
-    [
-        new("camelCase", ToCamelCase(input)),
-        new("PascalCase", ToPascalCase(input)),
-        new("snake_case", ToSnakeCase(input)),
-        new("SCREAMING_SNAKE", ToScreamingSnakeCase(input)),
-        new("kebab-case", ToKebabCase(input)),
-        new("Train-Case", ToTrainCase(input)),
-        new("Title Case", ToTitleCase(input)),
-        new("Sentence case", ToSentenceCase(input)),
-        new("lowercase", ToLowercase(input)),
-        new("UPPERCASE", ToUppercase(input)),
-        new("dot.case", ToDotCase(input)),
-        new("path/case", ToPathCase(input)),
-    ];
+    public static string ToDotCase(string? input) => ToDotCase(Tokenize(input));
+
+    private static string ToDotCase(IReadOnlyList<string> tokens) =>
+        string.Join(".", tokens);
+
+    public static string ToPathCase(string? input) => ToPathCase(Tokenize(input));
+
+    private static string ToPathCase(IReadOnlyList<string> tokens) =>
+        string.Join("/", tokens);
+
+    /// <summary>
+    /// Renders every supported style, in the order the UI lists them. Tokenizes the
+    /// input once and reuses it across all 12 converters, instead of re-running the
+    /// tokenizer's regex passes independently for each style.
+    /// </summary>
+    public static IReadOnlyList<CaseResult> ConvertAll(string? input)
+    {
+        var tokens = Tokenize(input);
+        return
+        [
+            new("camelCase", ToCamelCase(tokens)),
+            new("PascalCase", ToPascalCase(tokens)),
+            new("snake_case", ToSnakeCase(tokens)),
+            new("SCREAMING_SNAKE", ToScreamingSnakeCase(tokens)),
+            new("kebab-case", ToKebabCase(tokens)),
+            new("Train-Case", ToTrainCase(tokens)),
+            new("Title Case", ToTitleCase(tokens)),
+            new("Sentence case", ToSentenceCase(tokens)),
+            new("lowercase", ToLowercase(tokens)),
+            new("UPPERCASE", ToUppercase(tokens)),
+            new("dot.case", ToDotCase(tokens)),
+            new("path/case", ToPathCase(tokens)),
+        ];
+    }
 }

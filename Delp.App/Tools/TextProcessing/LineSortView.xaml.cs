@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.TextProcessing;
 
@@ -10,15 +11,28 @@ namespace Delp.App.Tools.TextProcessing;
     Keywords = "sort,dedupe,lines,unique,shuffle", Order = 50)]
 public partial class LineSortView : UserControl
 {
+    private readonly DispatcherTimer _debounce;
     private bool _updating;
 
     public LineSortView()
     {
         InitializeComponent();
+
+        _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _debounce.Tick += (_, _) =>
+        {
+            _debounce.Stop();
+            Run(Render);
+        };
+
         Run(Render);
     }
 
-    private void Input_Changed(object sender, RoutedEventArgs e) => Run(Render);
+    private void Input_Changed(object sender, RoutedEventArgs e)
+    {
+        _debounce.Stop();
+        _debounce.Start();
+    }
 
     private SortMode ReadSortMode() => SortModeBox.SelectedIndex switch
     {

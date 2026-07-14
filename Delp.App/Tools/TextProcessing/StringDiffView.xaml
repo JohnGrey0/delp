@@ -46,18 +46,64 @@
                    Style="{StaticResource Text.Error}"
                    Visibility="Collapsed" />
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="1" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+        <!-- One virtualized ListBox with a paired-row template (rather than two plain
+             ItemsControls sharing a ScrollViewer) so a 10k-line diff realizes only the
+             rows currently on screen instead of laying out every row up front. -->
+        <ListBox x:Name="DiffList">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="0" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                <ItemsControl x:Name="OldList" Grid.Column="0" />
-                <Border Grid.Column="1" Background="{StaticResource Brush.Border}" />
-                <ItemsControl x:Name="NewList" Grid.Column="2" />
-            </Grid>
-        </ScrollViewer>
+                        <Border Grid.Column="0" Background="{Binding OldBackground}" Padding="4,2">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left"
+                                           Text="{Binding OldNumber}"
+                                           Width="36"
+                                           TextAlignment="Right"
+                                           Margin="0,0,8,0"
+                                           Foreground="{StaticResource Brush.Fg2}"
+                                           FontFamily="{StaticResource Font.Mono}"
+                                           FontSize="12" />
+                                <TextBlock Text="{Binding OldText}"
+                                           TextWrapping="Wrap"
+                                           FontFamily="{StaticResource Font.Mono}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource Brush.Fg0}" />
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="{StaticResource Brush.Border}" />
+
+                        <Border Grid.Column="2" Background="{Binding NewBackground}" Padding="4,2">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left"
+                                           Text="{Binding NewNumber}"
+                                           Width="36"
+                                           TextAlignment="Right"
+                                           Margin="0,0,8,0"
+                                           Foreground="{StaticResource Brush.Fg2}"
+                                           FontFamily="{StaticResource Font.Mono}"
+                                           FontSize="12" />
+                                <TextBlock Text="{Binding NewText}"
+                                           TextWrapping="Wrap"
+                                           FontFamily="{StaticResource Font.Mono}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource Brush.Fg0}" />
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
     </DockPanel>
 </UserControl>

@@ -85,7 +85,9 @@ public static class TextStatsTool
             Utf8Bytes: System.Text.Encoding.UTF8.GetByteCount(text),
             AvgWordLength: avgWordLength,
             ReadingTimeSeconds: readingTimeSeconds,
-            TopWords: TopWords(text, topWordsCount));
+            // Reuse the word matches already collected above instead of re-running the
+            // word regex over the whole text a second time.
+            TopWords: RankTopWords(wordMatches, topWordsCount));
     }
 
     public static int CountSentences(string? text)
@@ -127,9 +129,17 @@ public static class TextStatsTool
         if (string.IsNullOrWhiteSpace(text) || n <= 0)
             return [];
 
+        return RankTopWords(WordRegex.Matches(text), n);
+    }
+
+    private static IReadOnlyList<WordCount> RankTopWords(MatchCollection matches, int n)
+    {
+        if (n <= 0)
+            return [];
+
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         var order = new List<string>();
-        foreach (Match m in WordRegex.Matches(text))
+        foreach (Match m in matches)
         {
             var w = m.Value.ToLowerInvariant();
             if (Stopwords.Contains(w))
