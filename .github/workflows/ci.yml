@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Delp.sln -c Release -warnaserror
+
+      - name: Unit tests
+        run: dotnet test Delp.Core.Tests -c Release --no-build
+
+      - name: View smoke test (constructs all tool views headlessly)
+        run: |
+          $p = Start-Process -FilePath "Delp.App\bin\Release\net10.0-windows10.0.19041.0\delp.exe" -ArgumentList "--smoke" -PassThru -Wait
+          Get-Content "Delp.App\bin\Release\net10.0-windows10.0.19041.0\smoke-report.txt"
+          exit $p.ExitCode
