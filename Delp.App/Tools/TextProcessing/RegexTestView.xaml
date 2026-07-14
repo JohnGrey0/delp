@@ -1,0 +1,86 @@
+<UserControl x:Class="Delp.App.Tools.TextProcessing.RegexTestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="PATTERN" Style="{StaticResource Text.Section}" Margin="0,0,0,4" />
+            <TextBox x:Name="PatternBox"
+                     Style="{StaticResource TextBox.Mono}"
+                     MinHeight="0"
+                     TextChanged="Input_Changed" />
+            <WrapPanel Margin="0,8,0,0">
+                <CheckBox x:Name="IgnoreCaseBox" Content="Ignore case" Margin="0,0,14,4"
+                          Checked="Input_Changed" Unchecked="Input_Changed" />
+                <CheckBox x:Name="MultilineBox" Content="Multiline" Margin="0,0,14,4"
+                          Checked="Input_Changed" Unchecked="Input_Changed" />
+                <CheckBox x:Name="SinglelineBox" Content="Singleline" Margin="0,0,14,4"
+                          Checked="Input_Changed" Unchecked="Input_Changed" />
+                <CheckBox x:Name="IgnoreWhitespaceBox" Content="Ignore pattern whitespace" Margin="0,0,14,4"
+                          Checked="Input_Changed" Unchecked="Input_Changed" />
+            </WrapPanel>
+            <TextBlock Text=".NET flavor (System.Text.RegularExpressions) — 2s match timeout"
+                       Style="{StaticResource Text.Sub}" Margin="0,2,0,8" />
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom"
+                   Style="{StaticResource Text.Sub}"
+                   Margin="0,8,0,0" />
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <TabControl>
+            <TabItem Header="MATCH">
+                <DockPanel Margin="0,10,0,0">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="TEST TEXT" Style="{StaticResource Text.Section}" Margin="0,0,0,4" />
+                        <TextBox x:Name="TestTextBox"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 MinHeight="72" MaxHeight="140"
+                                 TextChanged="Input_Changed" />
+
+                        <TextBlock Text="MATCHES VIEW" Style="{StaticResource Text.Section}" Margin="0,10,0,4" />
+                        <Border Style="{StaticResource Card.Editor}" MinHeight="72" MaxHeight="160">
+                            <RichTextBox x:Name="MatchesView"
+                                         IsReadOnly="True"
+                                         FontFamily="{StaticResource Font.Mono}"
+                                         FontSize="13"
+                                         Foreground="{StaticResource Brush.Fg0}"
+                                         VerticalScrollBarVisibility="Auto"
+                                         BorderThickness="0"
+                                         Background="Transparent" />
+                        </Border>
+
+                        <TextBlock Text="MATCHES" Style="{StaticResource Text.Section}" Margin="0,10,0,4" />
+                    </StackPanel>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ListBox x:Name="MatchesList" />
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="REPLACE">
+                <DockPanel Margin="0,10,0,0">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="REPLACEMENT (use $1, $2, ${name}…)" Style="{StaticResource Text.Section}" Margin="0,0,0,4" />
+                        <TextBox x:Name="ReplacementBox"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 MinHeight="0"
+                                 TextChanged="Input_Changed" />
+                        <DockPanel Margin="0,10,0,4">
+                            <Button x:Name="CopyReplaceBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyReplace_Click" />
+                            <TextBlock Text="RESULT" Style="{StaticResource Text.Section}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <TextBox x:Name="ReplaceResultBox"
+                             Style="{StaticResource TextBox.Mono}"
+                             IsReadOnly="True" />
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

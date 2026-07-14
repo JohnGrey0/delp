@@ -25,7 +25,13 @@ public partial class Pbkdf2View : UserControl
     private void GenerateSalt_Click(object sender, RoutedEventArgs e) =>
         SaltBox.Text = Convert.ToHexString(Pbkdf2Tool.GenerateSalt(16)).ToLowerInvariant();
 
-    private void IterationsBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateIterationsWarning();
+    private void IterationsBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        // The XAML default Text fires this during InitializeComponent,
+        // before IterationsWarning (declared later in the XAML) exists.
+        if (IsLoaded)
+            UpdateIterationsWarning();
+    }
 
     private void UpdateIterationsWarning()
     {

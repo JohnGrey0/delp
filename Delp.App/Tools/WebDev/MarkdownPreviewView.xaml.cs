@@ -22,19 +22,21 @@ public partial class MarkdownPreviewView : UserControl
 
     public MarkdownPreviewView()
     {
-        InitializeComponent();
-
-        _editor = CodeEditors.Create();
-        EditorHost.Child = _editor;
-        _editor.TextChanged += (_, _) => DebounceRender();
-        _editor.Text = Sample;
-
+        // The debounce timer must exist before the editor's TextChanged can
+        // fire (setting the initial sample text below triggers it).
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _debounce.Tick += (_, _) =>
         {
             _debounce.Stop();
             Render();
         };
+
+        InitializeComponent();
+
+        _editor = CodeEditors.Create();
+        EditorHost.Child = _editor;
+        _editor.TextChanged += (_, _) => DebounceRender();
+        _editor.Text = Sample;
 
         Loaded += MarkdownPreviewView_Loaded;
         Unloaded += (_, _) => _debounce.Stop();
