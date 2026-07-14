@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 
@@ -52,7 +53,7 @@ public static class UrlEncodeTool
             if (isUnreserved || (b < 0x80 && PreservedChars.IndexOf(c) >= 0))
                 sb.Append(c);
             else
-                sb.Append('%').Append(b.ToString("X2"));
+                sb.Append('%').Append(b.ToString("X2", CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }

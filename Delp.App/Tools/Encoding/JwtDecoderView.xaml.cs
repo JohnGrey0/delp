@@ -47,9 +47,7 @@ public partial class JwtDecoderView : UserControl
     private ClaimRow ToRow(JwtClaim claim)
     {
         var expired = claim.Note?.Contains("expired", StringComparison.OrdinalIgnoreCase) == true;
-        var brush = expired
-            ? (Brush)(TryFindResource("Brush.Warning") ?? Brushes.Orange)
-            : (Brush)(TryFindResource("Brush.Fg2") ?? Brushes.Gray);
+        var brush = (Brush)FindResource(expired ? "Brush.Warning" : "Brush.Fg2");
         return new ClaimRow(claim.Name, claim.Value, claim.Note, brush,
             claim.Note is null ? Visibility.Collapsed : Visibility.Visible);
     }

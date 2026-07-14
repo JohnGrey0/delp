@@ -8,6 +8,9 @@ namespace Delp.Core.Tools.Encoding;
 public static class BytesTool
 {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
+    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.None, RegexTimeout);
+    private static readonly Regex HexSeparatorRegex = new(@"[\s,]+", RegexOptions.None, RegexTimeout);
+    private static readonly Regex HexPrefixRegex = new("0[xX]", RegexOptions.None, RegexTimeout);
 
     public static byte[] FromText(string text) => System.Text.Encoding.UTF8.GetBytes(text ?? "");
 
@@ -37,7 +40,7 @@ public static class BytesTool
     /// <exception cref="FormatException">The binary string length is not a multiple of 8 or contains a non-0/1 character.</exception>
     public static byte[] FromBinary(string binary)
     {
-        var cleaned = Regex.Replace(binary ?? "", @"\s+", "", RegexOptions.None, RegexTimeout);
+        var cleaned = WhitespaceRegex.Replace(binary ?? "", "");
         if (cleaned.Length % 8 != 0)
             throw new FormatException($"Binary string length ({cleaned.Length}) is not a multiple of 8.");
 
@@ -104,12 +107,22 @@ public static class BytesTool
         return sb.ToString();
     }
 
-    public static string ToDecimalBytes(byte[] bytes) =>
-        string.Join(" ", bytes.Select(b => b.ToString(CultureInfo.InvariantCulture)));
+    public static string ToDecimalBytes(byte[] bytes)
+    {
+        var sb = new StringBuilder(bytes.Length * 4);
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            if (i > 0)
+                sb.Append(' ');
+            sb.Append(bytes[i].ToString(CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
 
     private static string CleanHex(string hex)
     {
-        var noSeparators = Regex.Replace(hex ?? "", @"[\s,]+", "", RegexOptions.None, RegexTimeout);
-        return Regex.Replace(noSeparators, "0[xX]", "", RegexOptions.None, RegexTimeout);
+        var noSeparators = HexSeparatorRegex.Replace(hex ?? "", "");
+        return HexPrefixRegex.Replace(noSeparators, "");
     }
 }

@@ -60,4 +60,12 @@ public class MorseToolTests
     {
         Assert.Equal(MorseTool.Encode("SOS   HELP", skipUnknown: false), MorseTool.Encode("SOS HELP", skipUnknown: false));
     }
+
+    [Fact]
+    public void Decode_ConsecutiveWordSeparators_EmptyGroupsFilteredNotThrown()
+    {
+        // Back-to-back "/" separators (no space between) produce an empty word internally;
+        // it must be silently dropped rather than throwing "Unknown Morse group ''".
+        Assert.Equal("S O", MorseTool.Decode("... // ---"));
+    }
 }

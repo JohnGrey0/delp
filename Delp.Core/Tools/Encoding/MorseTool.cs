@@ -7,6 +7,8 @@ namespace Delp.Core.Tools.Encoding;
 public static class MorseTool
 {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
+    private static readonly Regex WhitespaceSplitRegex = new(@"\s+", RegexOptions.None, RegexTimeout);
+    private static readonly Regex WordSeparatorRegex = new(@"\s*[/|]\s*|\s{3,}", RegexOptions.None, RegexTimeout);
 
     private static readonly IReadOnlyDictionary<char, string> CharToMorse = new Dictionary<char, string>
     {
@@ -34,7 +36,7 @@ public static class MorseTool
         if (trimmed.Length == 0)
             return "";
 
-        var words = Regex.Split(trimmed, @"\s+", RegexOptions.None, RegexTimeout);
+        var words = WhitespaceSplitRegex.Split(trimmed);
         var encodedWords = new List<string>();
         foreach (var word in words)
         {
@@ -63,11 +65,11 @@ public static class MorseTool
         if (trimmed.Length == 0)
             return "";
 
-        var words = Regex.Split(trimmed, @"\s*[/|]\s*|\s{3,}", RegexOptions.None, RegexTimeout);
+        var words = WordSeparatorRegex.Split(trimmed);
         var decodedWords = new List<string>();
         foreach (var word in words)
         {
-            var groups = Regex.Split(word.Trim(), @"\s+", RegexOptions.None, RegexTimeout);
+            var groups = WhitespaceSplitRegex.Split(word.Trim());
             var sb = new StringBuilder();
             foreach (var group in groups)
             {

@@ -7,6 +7,8 @@ namespace Delp.Core.Tools.Encoding;
 
 public static class HtmlEntityTool
 {
+    private static readonly Regex NumericEntityRegex = new("&#([0-9]+);", RegexOptions.None, TimeSpan.FromSeconds(2));
+
     /// <summary>HTML-encodes reserved characters (&amp; &lt; &gt; " '). <see cref="WebUtility.HtmlEncode"/>
     /// already emits every character above U+007F as a decimal numeric entity, merging UTF-16 surrogate
     /// pairs into a single entity per Unicode codepoint. When <paramref name="nonAsciiToNumeric"/> is true,
@@ -19,11 +21,11 @@ public static class HtmlEntityTool
             return encoded;
 
         // Reformat decimal numeric entities WebUtility.HtmlEncode already produced as hex.
-        encoded = Regex.Replace(encoded, "&#([0-9]+);", m =>
+        encoded = NumericEntityRegex.Replace(encoded, m =>
         {
             var codepoint = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
             return "&#x" + codepoint.ToString("X", CultureInfo.InvariantCulture) + ";";
-        }, RegexOptions.None, TimeSpan.FromSeconds(2));
+        });
 
         // Defensively handle any raw non-ASCII character WebUtility.HtmlEncode left untouched.
         var sb = new StringBuilder(encoded.Length);
