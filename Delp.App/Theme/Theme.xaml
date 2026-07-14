@@ -713,4 +713,50 @@
         </Setter>
     </Style>
 
+    <!-- ============================ Navigation ============================ -->
+
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+    <!-- Collapsible sidebar group header: chevron + group name. IsChecked = expanded. -->
+    <Style x:Key="NavGroupHeader" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Fg2}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="Transparent" Padding="10,12,10,4">
+                        <StackPanel Orientation="Horizontal">
+                            <Path x:Name="Chevron"
+                                  Data="M0,0 L3.5,3.5 L7,0"
+                                  Margin="0,1,7,0"
+                                  VerticalAlignment="Center"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  RenderTransformOrigin="0.5,0.5" />
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter TargetName="Chevron" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="-90" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Fg1}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>
