@@ -11,6 +11,12 @@ namespace Delp.App.Tools.DevUtilities;
     Keywords = "ssl,tls,certificate,x509,pem,expiry", Order = 100)]
 public partial class SslDecodeView : UserControl
 {
+    // Bumped by every user action that changes what should be on screen (paste-PEM decode or a
+    // host fetch). A fetch's async result is only applied if this still matches the id it captured
+    // when the fetch started — otherwise a slow fetch could land after (and clobber) whatever the
+    // user has since typed into the PASTE PEM tab, or a newer fetch's result.
+    private int _requestId;
+
     public SslDecodeView()
     {
         InitializeComponent();
@@ -18,6 +24,7 @@ public partial class SslDecodeView : UserControl
 
     private void PemBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        _requestId++;
         var text = PemBox.Text;
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -54,19 +61,26 @@ public partial class SslDecodeView : UserControl
             return;
         }
 
+        var requestId = ++_requestId;
         FetchBtn.IsEnabled = false;
         var originalContent = FetchBtn.Content;
         FetchBtn.Content = "Fetching…";
         try
         {
             var certs = await CertTool.FetchFromHostAsync(host, port);
-            CertsList.ItemsSource = certs;
-            HideError();
+            if (requestId == _requestId)
+            {
+                CertsList.ItemsSource = certs;
+                HideError();
+            }
         }
         catch (Exception ex)
         {
-            CertsList.ItemsSource = null;
-            ShowError(ex.Message);
+            if (requestId == _requestId)
+            {
+                CertsList.ItemsSource = null;
+                ShowError(ex.Message);
+            }
         }
         finally
         {

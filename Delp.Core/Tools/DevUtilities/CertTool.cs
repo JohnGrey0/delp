@@ -56,14 +56,16 @@ public static class CertTool
             foreach (Match match in matches)
             {
                 var der = DecodeBase64Body(match.Groups["body"].Value, "a PEM block");
-                results.Add(BuildCertInfo(LoadCertificate(der, "a PEM block")));
+                using var cert = LoadCertificate(der, "a PEM block");
+                results.Add(BuildCertInfo(cert));
             }
 
             return results;
         }
 
         var bareDer = DecodeBase64Body(pemOrBase64, "the input");
-        results.Add(BuildCertInfo(LoadCertificate(bareDer, "the input")));
+        using var bareCert = LoadCertificate(bareDer, "the input");
+        results.Add(BuildCertInfo(bareCert));
         return results;
     }
 
@@ -102,12 +104,15 @@ public static class CertTool
             {
                 if (chain is not null && chain.ChainElements.Count > 0)
                 {
+                    // element.Certificate instances are owned by the chain (built and disposed by
+                    // SslStream/the OS chain-building APIs) — we only read from them, never dispose.
                     foreach (var element in chain.ChainElements)
                         results.Add(BuildCertInfo(element.Certificate));
                 }
                 else if (certificate is not null)
                 {
-                    results.Add(BuildCertInfo(LoadCertificate(certificate.GetRawCertData(), "the server certificate")));
+                    using var cert = LoadCertificate(certificate.GetRawCertData(), "the server certificate");
+                    results.Add(BuildCertInfo(cert));
                 }
 
                 return true; // Inspection only — never fails the handshake on trust errors.

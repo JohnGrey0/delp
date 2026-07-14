@@ -10,12 +10,20 @@ public sealed record MimeEntry(string Extension, string MimeType);
 /// </summary>
 public static class MimeData
 {
-    private static readonly IReadOnlyDictionary<string, string> ExtToMime = BuildMap();
+    // Lazy<T>: the ~280-entry map is only built the first time a caller actually touches it (i.e.
+    // when the mime-lookup tool is first opened), not at assembly/type load time. There is exactly
+    // one shared instance for the process's lifetime; Search() filters over the derived list below
+    // without cloning it.
+    private static readonly Lazy<Dictionary<string, string>> ExtToMimeLazy = new(BuildMap);
 
-    public static IReadOnlyList<MimeEntry> All { get; } =
-        ExtToMime.Select(kv => new MimeEntry(kv.Key, kv.Value))
+    private static IReadOnlyDictionary<string, string> ExtToMime => ExtToMimeLazy.Value;
+
+    private static readonly Lazy<List<MimeEntry>> AllLazy = new(() =>
+        ExtToMimeLazy.Value.Select(kv => new MimeEntry(kv.Key, kv.Value))
             .OrderBy(e => e.Extension, StringComparer.Ordinal)
-            .ToList();
+            .ToList());
+
+    public static IReadOnlyList<MimeEntry> All => AllLazy.Value;
 
     /// <summary>Looks up the MIME type for an extension. The leading dot is optional; matching is case-insensitive.</summary>
     public static string? LookupByExtension(string extension)

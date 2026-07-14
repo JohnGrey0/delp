@@ -106,9 +106,9 @@ public static class IpTool
                 foreach (var ua in props.UnicastAddresses)
                 {
                     if (ua.Address.AddressFamily == AddressFamily.InterNetwork)
-                        v4.Add($"{ua.Address}/{ua.PrefixLength}");
+                        v4.Add(string.Create(CultureInfo.InvariantCulture, $"{ua.Address}/{ua.PrefixLength}"));
                     else if (ua.Address.AddressFamily == AddressFamily.InterNetworkV6)
-                        v6.Add($"{ua.Address}/{ua.PrefixLength}");
+                        v6.Add(string.Create(CultureInfo.InvariantCulture, $"{ua.Address}/{ua.PrefixLength}"));
                 }
 
                 result.Add(new AdapterInfo(nic.Name, nic.Description, v4, v6, nic.OperationalStatus.ToString()));
@@ -168,7 +168,7 @@ public static class IpTool
             Canonical: address.ToString(),
             IntegerForm: value.ToString(CultureInfo.InvariantCulture),
             BinaryForm: string.Join(".", bytes.Select(b => Convert.ToString(b, 2).PadLeft(8, '0'))),
-            PtrName: $"{bytes[3]}.{bytes[2]}.{bytes[1]}.{bytes[0]}.in-addr.arpa",
+            PtrName: string.Create(CultureInfo.InvariantCulture, $"{bytes[3]}.{bytes[2]}.{bytes[1]}.{bytes[0]}.in-addr.arpa"),
             Classification: classification,
             IsGlobal: classification == Classification.Global);
     }
@@ -215,7 +215,8 @@ public static class IpTool
         ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
 
     private static string ToDotted(uint value) =>
-        $"{(value >> 24) & 0xFF}.{(value >> 16) & 0xFF}.{(value >> 8) & 0xFF}.{value & 0xFF}";
+        string.Create(CultureInfo.InvariantCulture,
+            $"{(value >> 24) & 0xFF}.{(value >> 16) & 0xFF}.{(value >> 8) & 0xFF}.{value & 0xFF}");
 
     // ---------------------------------------------------------------- IPv4 CIDR
 

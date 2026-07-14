@@ -20,10 +20,15 @@ public static class HttpStatusData
     public const string ClientError = "Client Error";
     public const string ServerError = "Server Error";
 
-    public static IReadOnlyList<HttpStatusEntry> All { get; } = BuildAll();
+    // Lazy<T>: the ~60-entry dataset is only built the first time a caller actually touches it
+    // (i.e. when the http-status tool is first opened), not at assembly/type load time. There is
+    // exactly one shared instance for the process's lifetime; Search() filters over it without cloning.
+    private static readonly Lazy<List<HttpStatusEntry>> AllLazy = new(BuildAll);
+
+    public static IReadOnlyList<HttpStatusEntry> All => AllLazy.Value;
 
     /// <summary>Group label ("1xx".."5xx") for a status code, for the class-filter UI.</summary>
-    public static string GroupLabel(int code) => $"{code / 100}xx";
+    public static string GroupLabel(int code) => $"{(code / 100).ToString(CultureInfo.InvariantCulture)}xx";
 
     /// <summary>Matches by code prefix, name, or summary text.</summary>
     public static IReadOnlyList<HttpStatusEntry> Search(string? query)

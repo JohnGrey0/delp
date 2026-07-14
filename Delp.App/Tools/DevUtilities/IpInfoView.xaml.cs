@@ -2,6 +2,7 @@ using System.Net.NetworkInformation;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.DevUtilities;
 
@@ -13,21 +14,35 @@ namespace Delp.App.Tools.DevUtilities;
 public partial class IpInfoView : UserControl
 {
     private bool _updating;
+    private int _adaptersRequestId;
+    private readonly DispatcherTimer _debounce;
 
     public IpInfoView()
     {
         InitializeComponent();
+
+        _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _debounce.Tick += (_, _) =>
+        {
+            _debounce.Stop();
+            Run(Refresh);
+        };
+
         Loaded += (_, _) =>
         {
             Refresh();
             RefreshAdapters();
         };
+        Unloaded += (_, _) => _debounce.Stop();
     }
 
     private void InputBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (IsLoaded)
-            Run(Refresh);
+        {
+            _debounce.Stop();
+            _debounce.Start();
+        }
     }
 
     private void RefreshAdapters_Click(object sender, RoutedEventArgs e) => RefreshAdapters();
@@ -94,13 +109,23 @@ public partial class IpInfoView : UserControl
         RowsList.ItemsSource = rows;
     }
 
-    private void RefreshAdapters()
+    /// <summary>
+    /// Enumerates local adapters off the UI thread — <see cref="NetworkInterface.GetAllNetworkInterfaces"/>
+    /// can block for hundreds of milliseconds, so this must never run synchronously on the UI thread
+    /// (including at construction time). Guarded by a request id so a slow, superseded call can't
+    /// clobber a newer one's results.
+    /// </summary>
+    private async void RefreshAdapters()
     {
         var showAll = ShowAllBox.IsChecked == true;
-        var adapters = IpTool.LocalAdapters()
+        var requestId = ++_adaptersRequestId;
+
+        var adapters = await Task.Run(() => IpTool.LocalAdapters()
             .Where(a => showAll || a.Status == OperationalStatus.Up.ToString())
-            .ToList();
-        AdaptersList.ItemsSource = adapters;
+            .ToList());
+
+        if (requestId == _adaptersRequestId)
+            AdaptersList.ItemsSource = adapters;
     }
 
     /// <summary>Runs a conversion with reentrancy protection and inline error reporting.</summary>

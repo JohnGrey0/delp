@@ -8,7 +8,12 @@ public sealed record PortEntry(int Port, string Protocol, string Service, string
 /// <summary>Reference data for TCP/UDP ports: IANA well-known ports plus registered ports developers hit day to day.</summary>
 public static class PortData
 {
-    public static IReadOnlyList<PortEntry> All { get; } = BuildAll();
+    // Lazy<T>: the ~140-entry dataset is only built the first time a caller actually touches it
+    // (i.e. when the port-lookup tool is first opened), not at assembly/type load time. There is
+    // exactly one shared instance for the process's lifetime; Search() filters over it without cloning.
+    private static readonly Lazy<List<PortEntry>> AllLazy = new(BuildAll);
+
+    public static IReadOnlyList<PortEntry> All => AllLazy.Value;
 
     /// <summary>Matches an exact or prefix port number, or a substring of the service/description.</summary>
     public static IReadOnlyList<PortEntry> Search(string? query)
