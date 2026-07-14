@@ -21,14 +21,16 @@ public partial class PlaceholderImageView : UserControl
 
     public PlaceholderImageView()
     {
-        InitializeComponent();
-
+        // Created before InitializeComponent: the XAML default Text values
+        // fire Option_TextChanged during parse, which touches this timer.
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _debounce.Tick += (_, _) =>
         {
             _debounce.Stop();
             Render();
         };
+
+        InitializeComponent();
 
         Unloaded += (_, _) => _debounce.Stop();
 

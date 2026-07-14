@@ -23,6 +23,12 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        if (e.Args.Contains("--smoke"))
+        {
+            RunViewSmokeTest();
+            return;
+        }
+
         _flyout = new FlyoutWindow();
         _flyout.ExpandRequested += (_, toolId) => OpenMain(toolId);
 
@@ -76,6 +82,42 @@ public partial class App : Application
             _flyout.HideFlyout();
         else
             _flyout.ShowFlyout();
+    }
+
+    /// <summary>
+    /// Headless QA mode (run with --smoke): constructs and lays out every
+    /// registered tool view, then writes smoke-report.txt next to the exe.
+    /// Exit code = number of failing views.
+    /// </summary>
+    private void RunViewSmokeTest()
+    {
+        var report = new System.Text.StringBuilder();
+        var failures = 0;
+        var total = System.Diagnostics.Stopwatch.StartNew();
+
+        foreach (var info in ToolCatalog.All)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var view = ToolCatalog.CreateView(info);
+                view.Measure(new Size(800, 600));
+                view.Arrange(new Rect(0, 0, 800, 600));
+                report.AppendLine($"OK   {sw.ElapsedMilliseconds,5} ms  {info.Id}");
+            }
+            catch (Exception ex)
+            {
+                failures++;
+                var root = ex.GetBaseException();
+                report.AppendLine($"FAIL {sw.ElapsedMilliseconds,5} ms  {info.Id}: {root.GetType().Name}: {root.Message}");
+            }
+        }
+
+        report.Insert(0,
+            $"Delp view smoke test — {ToolCatalog.All.Count} tools, {failures} failures, {total.ElapsedMilliseconds} ms total{Environment.NewLine}");
+        var path = System.IO.Path.Combine(AppContext.BaseDirectory, "smoke-report.txt");
+        System.IO.File.WriteAllText(path, report.ToString());
+        Shutdown(failures);
     }
 
     private void OpenMain(string? toolId)
