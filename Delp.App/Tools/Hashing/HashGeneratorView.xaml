@@ -1,0 +1,84 @@
+<UserControl x:Class="Delp.App.Tools.Hashing.HashGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <WrapPanel>
+                <Button x:Name="PickFileBtn"
+                        Content="Hash a file…"
+                        Margin="0,0,10,6"
+                        Click="PickFile_Click" />
+                <CheckBox x:Name="UppercaseBox"
+                          Content="Uppercase"
+                          Margin="0,0,10,6"
+                          Checked="Uppercase_Changed"
+                          Unchecked="Uppercase_Changed" />
+            </WrapPanel>
+            <TextBlock x:Name="FileInfoText"
+                       Style="{StaticResource Text.Sub}"
+                       Margin="0,2,0,0"
+                       Visibility="Collapsed" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Style="{StaticResource Text.Section}"
+                       Text="INPUT — TEXT (UTF-8), OR DROP/PICK A FILE ABOVE"
+                       Margin="0,0,0,6" />
+            <TextBox x:Name="InputBox"
+                     Grid.Row="1"
+                     Style="{StaticResource TextBox.Mono}"
+                     Height="100"
+                     AllowDrop="True"
+                     TextChanged="InputBox_TextChanged"
+                     PreviewDragOver="InputBox_PreviewDragOver"
+                     Drop="InputBox_Drop" />
+
+            <ScrollViewer Grid.Row="2" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="RowsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           VerticalAlignment="Center"
+                                           Style="{StaticResource Text.Section}"
+                                           Text="{Binding Algorithm}" />
+                                <TextBox Grid.Column="1"
+                                         Style="{StaticResource TextBox.Mono}"
+                                         Text="{Binding Hex, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="False"
+                                         TextWrapping="NoWrap"
+                                         VerticalContentAlignment="Center"
+                                         Height="32"
+                                         Margin="8,0"
+                                         HorizontalScrollBarVisibility="Auto" />
+                                <Button Grid.Column="2"
+                                        Content="Copy"
+                                        Click="CopyRow_Click" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

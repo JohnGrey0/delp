@@ -425,10 +425,9 @@ test-results/
 # Mac bundle stuff
 *.dmg
 *.app
-# NOTE: the *.app pattern above unintentionally matches the Delp.App/ project
-# directory (case-insensitive on Windows), which silently excluded the whole
-# WPF app project from version control. Un-ignore it explicitly.
-!Delp.App/
+# *.app above (macOS bundle) unintentionally matches our Delp.App project on
+# case-insensitive filesystems; explicitly un-ignore it.
+!/Delp.App/
 
 # content below from: https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 # General
