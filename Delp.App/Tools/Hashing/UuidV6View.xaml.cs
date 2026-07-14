@@ -10,11 +10,14 @@ namespace Delp.App.Tools.Hashing;
     Keywords = "uuid,guid,v6,sortable,rfc9562", Order = 160)]
 public partial class UuidV6View : UserControl
 {
-    private readonly List<Guid> _guids = [];
+    private readonly UuidBatchController _batch;
+    private readonly ErrorBox _error;
 
     public UuidV6View()
     {
         InitializeComponent();
+        _batch = new UuidBatchController(CountBox, OutputBox);
+        _error = new ErrorBox(ErrorText);
     }
 
     private UuidStyle FormatStyle => new(
@@ -22,73 +25,35 @@ public partial class UuidV6View : UserControl
         Braces: BracesBox.IsChecked == true,
         NoHyphens: NoHyphensBox.IsChecked == true);
 
-    private void Generate_Click(object sender, RoutedEventArgs e)
+    private void Generate_Click(object sender, RoutedEventArgs e) => _error.Run(() =>
     {
-        try
-        {
-            var count = ParseCount();
-            var node = UseMacBox.IsChecked == true ? UuidNode.RealMacNode() : UuidNode.RandomNode();
-            var clockSeq = UuidNode.RandomClockSequence();
-
-            _guids.Clear();
-            Guid Generate() => UuidV6.Generate(node, clockSeq);
-            var formatted = UuidBatch.Generate(Capture(Generate), count, FormatStyle);
-            OutputBox.Text = string.Join(Environment.NewLine, formatted);
-            UpdateTimestampNote();
-            HideError();
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
-    }
+        var count = _batch.ParseCount();
+        var node = UseMacBox.IsChecked == true ? UuidNode.RealMacNode() : UuidNode.RandomNode();
+        var clockSeq = UuidNode.RandomClockSequence();
+        _batch.GenerateAndRender(count, () => UuidV6.Generate(node, clockSeq), FormatStyle);
+        UpdateTimestampNote();
+    });
 
     private void Option_Changed(object sender, RoutedEventArgs e)
     {
-        if (IsLoaded && _guids.Count > 0)
-            OutputBox.Text = string.Join(Environment.NewLine, _guids.Select(g => UuidFormat.Apply(g, FormatStyle)));
+        if (IsLoaded)
+            _batch.Reformat(FormatStyle);
     }
 
     private void UpdateTimestampNote()
     {
-        if (_guids.Count == 0)
+        if (_batch.Guids.Count == 0)
         {
             TimestampNote.Text = "";
             return;
         }
 
-        var ts = UuidV6.DecodeTimestamp(_guids[0]);
+        var ts = UuidV6.DecodeTimestamp(_batch.Guids[0]);
         TimestampNote.Text =
             $"First UUID timestamp: {ts.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff} local / {ts.UtcDateTime:yyyy-MM-dd HH:mm:ss.fff} UTC";
     }
 
-    private int ParseCount()
-    {
-        if (!int.TryParse(CountBox.Text.Trim(), out var count))
-            throw new FormatException("Count must be a whole number.");
-        return count;
-    }
+    private void Copy_Click(object sender, RoutedEventArgs e) => UuidOutputCopy.Copy(OutputBox, CopyBtn);
 
-    private Func<Guid> Capture(Func<Guid> generator) => () =>
-    {
-        var g = generator();
-        _guids.Add(g);
-        return g;
-    };
-
-    private void HideError() => ErrorText.Visibility = Visibility.Collapsed;
-
-    private void ShowError(Exception ex)
-    {
-        ErrorText.Text = ex.Message;
-        ErrorText.Visibility = Visibility.Visible;
-    }
-
-    private void Copy_Click(object sender, RoutedEventArgs e) => Ui.Copy(OutputBox.Text, CopyBtn);
-
-    private void CopyJson_Click(object sender, RoutedEventArgs e)
-    {
-        var lines = OutputBox.Text.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
-        Ui.Copy(System.Text.Json.JsonSerializer.Serialize(lines), CopyJsonBtn);
-    }
+    private void CopyJson_Click(object sender, RoutedEventArgs e) => UuidOutputCopy.CopyAsJson(OutputBox, CopyJsonBtn);
 }

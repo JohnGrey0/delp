@@ -10,9 +10,12 @@ namespace Delp.App.Tools.Hashing;
     Keywords = "uuid,guid,v5,sha1,namespace,rfc9562", Order = 150)]
 public partial class UuidV5View : UserControl
 {
+    private readonly ErrorBox _error;
+
     public UuidV5View()
     {
         InitializeComponent();
+        _error = new ErrorBox(ErrorText);
     }
 
     private UuidStyle FormatStyle => new(
@@ -37,12 +40,12 @@ public partial class UuidV5View : UserControl
             var ns = ResolveNamespace();
             var guid = UuidNameBased.GenerateV5(ns, NameBox.Text);
             OutputBox.Text = UuidFormat.Apply(guid, FormatStyle);
-            HideError();
+            _error.HideError();
         }
         catch (Exception ex)
         {
             OutputBox.Text = "";
-            ShowError(ex);
+            _error.ShowError(ex);
         }
     }
 
@@ -55,19 +58,7 @@ public partial class UuidV5View : UserControl
         _ => UuidNameBased.ParseNamespace(CustomNsBox.Text),
     };
 
-    private void HideError() => ErrorText.Visibility = Visibility.Collapsed;
+    private void Copy_Click(object sender, RoutedEventArgs e) => UuidOutputCopy.Copy(OutputBox, CopyBtn);
 
-    private void ShowError(Exception ex)
-    {
-        ErrorText.Text = ex.Message;
-        ErrorText.Visibility = Visibility.Visible;
-    }
-
-    private void Copy_Click(object sender, RoutedEventArgs e) => Ui.Copy(OutputBox.Text, CopyBtn);
-
-    private void CopyJson_Click(object sender, RoutedEventArgs e)
-    {
-        var lines = OutputBox.Text.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
-        Ui.Copy(System.Text.Json.JsonSerializer.Serialize(lines), CopyJsonBtn);
-    }
+    private void CopyJson_Click(object sender, RoutedEventArgs e) => UuidOutputCopy.CopyAsJson(OutputBox, CopyJsonBtn);
 }
