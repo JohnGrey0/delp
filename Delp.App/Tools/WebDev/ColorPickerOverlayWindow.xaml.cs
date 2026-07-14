@@ -93,8 +93,18 @@ public partial class ColorPickerOverlayWindow : Window
         Swatch.Background = new SolidColorBrush(Color.FromRgb(_r, _g, _b));
         HexLabel.Text = $"#{_r:X2}{_g:X2}{_b:X2}";
 
-        // Physical cursor pixels -> this window's DIPs, so the card tracks
-        // correctly across monitors with different DPI scaling.
+        // Physical cursor pixels -> this window's DIPs. NOTE: a single HWND
+        // has exactly one DPI context in Win32, chosen by the OS for
+        // whichever monitor the window is considered to be "on" (this
+        // window spans the whole virtual screen, so that's effectively
+        // fixed at creation time). On a mixed-DPI multi-monitor setup the
+        // cursor may be on a monitor scaled differently from that context,
+        // so the card can land a few px off from the literal cursor tip
+        // when a secondary display's DPI differs from the reference one.
+        // That's a Win32/WPF limitation we don't attempt to fully correct
+        // here (would need a per-monitor overlay window each); the clamps
+        // below just keep the card fully on screen instead of letting it
+        // drift off an edge or throw from an out-of-range Canvas position.
         var dpi = VisualTreeHelper.GetDpi(this);
         var dipX = pt.X / dpi.DpiScaleX - Left;
         var dipY = pt.Y / dpi.DpiScaleY - Top;
@@ -106,8 +116,10 @@ public partial class ColorPickerOverlayWindow : Window
         if (cardX + cardWidth > ActualWidth) cardX = dipX - cardWidth - 4;
         if (cardY + cardHeight > ActualHeight) cardY = dipY - cardHeight - 4;
 
-        Canvas.SetLeft(InfoCard, Math.Max(0, cardX));
-        Canvas.SetTop(InfoCard, Math.Max(0, cardY));
+        cardX = Math.Clamp(cardX, 0, Math.Max(0, ActualWidth - cardWidth));
+        cardY = Math.Clamp(cardY, 0, Math.Max(0, ActualHeight - cardHeight));
+        Canvas.SetLeft(InfoCard, cardX);
+        Canvas.SetTop(InfoCard, cardY);
     }
 
     [StructLayout(LayoutKind.Sequential)]

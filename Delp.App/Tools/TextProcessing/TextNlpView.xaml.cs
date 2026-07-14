@@ -12,6 +12,7 @@ namespace Delp.App.Tools.TextProcessing;
 public partial class TextNlpView : UserControl
 {
     private readonly DispatcherTimer _debounce;
+    private int _runToken;
 
     public TextNlpView()
     {
@@ -21,10 +22,10 @@ public partial class TextNlpView : UserControl
         _debounce.Tick += (_, _) =>
         {
             _debounce.Stop();
-            Run();
+            _ = RunAsync();
         };
 
-        Loaded += (_, _) => Run();
+        Loaded += (_, _) => _ = RunAsync();
     }
 
     private void InputBox_TextChanged(object sender, TextChangedEventArgs e) => Debounce();
@@ -33,7 +34,7 @@ public partial class TextNlpView : UserControl
     private void Options_Changed(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
-            Run();
+            _ = RunAsync();
     }
 
     private void Debounce()
@@ -44,19 +45,38 @@ public partial class TextNlpView : UserControl
         _debounce.Start();
     }
 
-    private void Run()
+    /// <summary>
+    /// Runs the full tokenize/stem/frequency/n-gram pipeline off the UI
+    /// thread (a pasted megabyte-scale document must not freeze the app),
+    /// then applies the result back on the UI thread — unless a newer run
+    /// has since been kicked off, in which case this stale result is
+    /// dropped rather than clobbering what's on screen.
+    /// </summary>
+    private async Task RunAsync()
     {
+        var token = ++_runToken;
+
+        var options = new NlpTool.NlpOptions(
+            Lowercase: LowercaseBox.IsChecked == true,
+            RemoveStopwords: StopwordsBox.IsChecked == true,
+            RemovePunctuation: PunctuationBox.IsChecked == true,
+            RemoveNumbers: NumbersBox.IsChecked == true,
+            Stem: StemBox.IsChecked == true,
+            ExtraStopwords: ExtraStopwordsBox.Text);
+        var text = InputBox.Text;
+
         try
         {
-            var options = new NlpTool.NlpOptions(
-                Lowercase: LowercaseBox.IsChecked == true,
-                RemoveStopwords: StopwordsBox.IsChecked == true,
-                RemovePunctuation: PunctuationBox.IsChecked == true,
-                RemoveNumbers: NumbersBox.IsChecked == true,
-                Stem: StemBox.IsChecked == true,
-                ExtraStopwords: ExtraStopwordsBox.Text);
+            var (result, bigrams, trigrams) = await Task.Run(() =>
+            {
+                var r = NlpTool.Process(text, options);
+                var bg = NlpTool.Ngrams(r.Tokens, 2);
+                var tg = NlpTool.Ngrams(r.Tokens, 3);
+                return (r, bg, tg);
+            });
 
-            var result = NlpTool.Process(InputBox.Text, options);
+            if (token != _runToken)
+                return;
 
             ProcessedBox.Text = result.ProcessedText;
             TokensBox.Text = string.Join(Environment.NewLine, result.Tokens);
@@ -66,13 +86,11 @@ public partial class TextNlpView : UserControl
                 .Select(f => $"{f.Term} × {f.Count}")
                 .ToList();
 
-            var bigrams = NlpTool.Ngrams(result.Tokens, 2);
             BigramList.ItemsSource = bigrams
                 .Take(50)
                 .Select(g => $"{g.Gram} × {g.Count}")
                 .ToList();
 
-            var trigrams = NlpTool.Ngrams(result.Tokens, 3);
             TrigramList.ItemsSource = trigrams
                 .Take(50)
                 .Select(g => $"{g.Gram} × {g.Count}")
@@ -84,6 +102,8 @@ public partial class TextNlpView : UserControl
         }
         catch (Exception ex)
         {
+            if (token != _runToken)
+                return;
             ErrorText.Text = ex.Message;
             ErrorText.Visibility = Visibility.Visible;
         }

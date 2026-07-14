@@ -107,6 +107,27 @@ public class PorterStemmerTests
         Assert.Equal(expected, PorterStemmer.Stem(input));
     }
 
+    [Theory]
+    // Additional spot-check vectors beyond the paper's own examples, hand
+    // traced against the reference (C/NLTK) algorithm to confirm this
+    // implementation's step interactions (cascading Step2/3 rewrites,
+    // Step4's m&gt;1 "ion" gate, Step5b double-consonant trim) hold up on
+    // words the paper's vocabulary doesn't cover.
+    [InlineData("running", "run")]
+    [InlineData("happiness", "happi")]
+    [InlineData("national", "nation")]
+    [InlineData("sensational", "sensat")]
+    [InlineData("controlling", "control")]
+    [InlineData("possibly", "possibli")]
+    [InlineData("generalization", "gener")]
+    [InlineData("meetings", "meet")]
+    [InlineData("capabilities", "capabl")]
+    [InlineData("reflection", "reflect")]
+    public void Stem_AdditionalSpotCheckVectors_MatchReferenceAlgorithm(string input, string expected)
+    {
+        Assert.Equal(expected, PorterStemmer.Stem(input));
+    }
+
     [Fact]
     public void Stem_EmptyInput_ReturnsEmpty()
     {

@@ -102,6 +102,19 @@ public class NlpToolTests
     }
 
     [Fact]
+    public void Process_UnicodeText_TokenizesNonAsciiLetters()
+    {
+        // Word pattern is \p{L}\p{Nd}-based, not ASCII-only: accented Latin
+        // and non-Latin scripts must tokenize as whole words, and stemming
+        // (ASCII-only per PorterStemmer) must pass non-ASCII tokens through
+        // unchanged instead of mangling or dropping them.
+        var options = new NlpTool.NlpOptions(Lowercase: true, RemoveStopwords: false,
+            RemovePunctuation: false, RemoveNumbers: false, Stem: true);
+        var result = NlpTool.Process("Café naïve 日本語 test", options);
+        Assert.Equal(["café", "naïve", "日本語", "test"], result.Tokens);
+    }
+
+    [Fact]
     public void Process_Frequencies_OrderedByCountThenAlpha()
     {
         var result = NlpTool.Process("b a b c a b", None);
