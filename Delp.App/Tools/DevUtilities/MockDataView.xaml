@@ -1,0 +1,56 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.MockDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Style="{StaticResource Text.Section}" Text="FIELDS" Margin="0,0,0,6" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" MaxHeight="220">
+                <StackPanel x:Name="FieldsPanel" MinWidth="380" />
+            </ScrollViewer>
+            <Button x:Name="AddFieldBtn" Content="+ Add field" HorizontalAlignment="Left" Margin="0,4,0,0" Click="AddFieldBtn_Click" />
+        </StackPanel>
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
+                <TextBlock Text="Rows" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                <TextBox x:Name="RowCountBox" Width="56" Text="10" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
+                <TextBlock Text="Seed" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                <TextBox x:Name="SeedBox" Width="72" Tag="random" />
+            </StackPanel>
+            <RadioButton x:Name="JsonFormatRadio" Content="JSON" GroupName="Format" IsChecked="True" Margin="0,0,12,10" Checked="Format_Changed" />
+            <RadioButton x:Name="CsvFormatRadio" Content="CSV" GroupName="Format" Margin="0,0,12,10" Checked="Format_Changed" />
+            <RadioButton x:Name="SqlFormatRadio" Content="SQL" GroupName="Format" Margin="0,0,16,10" Checked="Format_Changed" />
+            <StackPanel x:Name="TableNameRow" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                <TextBlock Text="Table" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                <TextBox x:Name="TableNameBox" Width="120" Text="mock_data" />
+            </StackPanel>
+        </WrapPanel>
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button x:Name="GenerateBtn" Content="Generate" Style="{StaticResource Button.Primary}" Click="Generate_Click" Margin="0,0,14,0" />
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource Text.Sub}" />
+        </StackPanel>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                <Button x:Name="CopyBtn" DockPanel.Dock="Right" Content="Copy" Click="Copy_Click" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
+            </DockPanel>
+            <Border x:Name="OutputHost" Grid.Row="1" Style="{StaticResource Card.Editor}" />
+        </Grid>
+    </DockPanel>
+</UserControl>

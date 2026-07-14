@@ -1,0 +1,67 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.BasicAuthView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock DockPanel.Dock="Bottom"
+                   Margin="0,12,0,0"
+                   Style="{StaticResource Text.Sub}"
+                   Text="Base64 is encoding, not encryption — only use over HTTPS." />
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <TabControl x:Name="ModeTabs" SelectionChanged="Option_Changed">
+            <TabItem Header="ENCODE">
+                <StackPanel Margin="0,6,0,0">
+                    <TextBlock Style="{StaticResource Text.Section}" Text="USERNAME" Margin="0,0,0,6" />
+                    <TextBox x:Name="UserBox" TextChanged="Option_Changed" />
+
+                    <TextBlock Style="{StaticResource Text.Section}" Text="PASSWORD" Margin="0,14,0,6" />
+                    <TextBox x:Name="PasswordBox" TextChanged="Option_Changed" />
+
+                    <DockPanel Margin="0,18,0,6">
+                        <Button x:Name="CopyHeaderBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyHeader_Click" />
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="AUTHORIZATION HEADER" />
+                    </DockPanel>
+                    <TextBox x:Name="HeaderBox" Style="{StaticResource TextBox.Mono}" MinHeight="40" IsReadOnly="True" TextWrapping="Wrap" />
+
+                    <DockPanel Margin="0,14,0,6">
+                        <Button x:Name="CopyCurlHeaderBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyCurlHeader_Click" />
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="CURL -H FORM" />
+                    </DockPanel>
+                    <TextBox x:Name="CurlHeaderBox" Style="{StaticResource TextBox.Mono}" MinHeight="40" IsReadOnly="True" TextWrapping="Wrap" />
+
+                    <DockPanel Margin="0,14,0,6">
+                        <Button x:Name="CopyCurlUserBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyCurlUser_Click" />
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="CURL -U FORM" />
+                    </DockPanel>
+                    <TextBox x:Name="CurlUserBox" Style="{StaticResource TextBox.Mono}" MinHeight="40" IsReadOnly="True" TextWrapping="Wrap" />
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="DECODE">
+                <StackPanel Margin="0,6,0,0">
+                    <TextBlock Style="{StaticResource Text.Section}" Text="HEADER OR BASE64" Margin="0,0,0,6" />
+                    <TextBox x:Name="DecodeInputBox" Style="{StaticResource TextBox.Mono}" MinHeight="60" TextWrapping="Wrap"
+                             AcceptsReturn="True" TextChanged="Option_Changed" />
+
+                    <DockPanel Margin="0,18,0,6">
+                        <Button x:Name="CopyUserBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyUser_Click" />
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="USERNAME" />
+                    </DockPanel>
+                    <TextBox x:Name="DecodedUserBox" IsReadOnly="True" />
+
+                    <DockPanel Margin="0,14,0,6">
+                        <Button x:Name="CopyPassBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyPass_Click" />
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="PASSWORD" />
+                    </DockPanel>
+                    <TextBox x:Name="DecodedPasswordBox" IsReadOnly="True" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>
