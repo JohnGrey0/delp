@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Delp.Core", "Delp.Core\Delp.Core.csproj", "{1097D97C-F4FD-4C0A-B372-1C37848809DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Delp.App", "Delp.App\Delp.App.csproj", "{1CDDF6D0-8889-49E6-9BF3-2C1DBC553372}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Delp.Core.Tests", "Delp.Core.Tests\Delp.Core.Tests.csproj", "{691313E8-6F4B-45D4-9F85-411D5942FFB8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1097D97C-F4FD-4C0A-B372-1C37848809DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1097D97C-F4FD-4C0A-B372-1C37848809DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1097D97C-F4FD-4C0A-B372-1C37848809DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1097D97C-F4FD-4C0A-B372-1C37848809DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CDDF6D0-8889-49E6-9BF3-2C1DBC553372}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CDDF6D0-8889-49E6-9BF3-2C1DBC553372}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CDDF6D0-8889-49E6-9BF3-2C1DBC553372}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CDDF6D0-8889-49E6-9BF3-2C1DBC553372}.Release|Any CPU.Build.0 = Release|Any CPU
+		{691313E8-6F4B-45D4-9F85-411D5942FFB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{691313E8-6F4B-45D4-9F85-411D5942FFB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{691313E8-6F4B-45D4-9F85-411D5942FFB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{691313E8-6F4B-45D4-9F85-411D5942FFB8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
