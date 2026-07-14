@@ -68,9 +68,8 @@
                                          AcceptsReturn="False"
                                          TextWrapping="NoWrap"
                                          VerticalContentAlignment="Center"
-                                         Height="32"
                                          Margin="8,0"
-                                         HorizontalScrollBarVisibility="Auto" />
+                                         HorizontalScrollBarVisibility="Hidden" />
                                 <Button Grid.Column="2"
                                         Content="Copy"
                                         Click="CopyRow_Click" />

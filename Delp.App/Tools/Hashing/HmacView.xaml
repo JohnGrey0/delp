@@ -11,7 +11,6 @@
                          Style="{StaticResource TextBox.Mono}"
                          AcceptsReturn="False"
                          TextWrapping="NoWrap"
-                         Height="32"
                          VerticalContentAlignment="Center"
                          Margin="0,0,8,6"
                          TextChanged="KeyBox_TextChanged" />

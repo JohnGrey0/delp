@@ -9,7 +9,6 @@
                        Text="IP ADDRESS OR CIDR" />
             <TextBox x:Name="InputBox"
                      Style="{StaticResource TextBox.Mono}"
-                     Height="34"
                      AcceptsReturn="False"
                      Text="8.8.8.8"
                      TextChanged="InputBox_TextChanged" />

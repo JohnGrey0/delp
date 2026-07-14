@@ -9,7 +9,6 @@
                      Style="{StaticResource TextBox.Mono}"
                      AcceptsReturn="False"
                      TextWrapping="NoWrap"
-                     Height="32"
                      VerticalContentAlignment="Center"
                      Margin="0,0,0,10" />
 
@@ -22,7 +21,6 @@
                                  Style="{StaticResource TextBox.Mono}"
                                  AcceptsReturn="False"
                                  TextWrapping="NoWrap"
-                                 Height="32"
                                  VerticalContentAlignment="Center" />
                         <Button Content="Generate" Margin="8,0,0,0" Click="GenerateSalt_Click" />
                     </StackPanel>
