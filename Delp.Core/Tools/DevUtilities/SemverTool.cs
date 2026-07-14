@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using Semver;
 
@@ -58,13 +59,14 @@ public static class SemverTool
         }
 
         var op = order < 0 ? "<" : ">";
+        var ic = CultureInfo.InvariantCulture;
 
         if (a.Major != b.Major)
-            return $"Differ at major: {a.Major} {op} {b.Major}.";
+            return $"Differ at major: {a.Major.ToString(ic)} {op} {b.Major.ToString(ic)}.";
         if (a.Minor != b.Minor)
-            return $"Differ at minor: {a.Minor} {op} {b.Minor}.";
+            return $"Differ at minor: {a.Minor.ToString(ic)} {op} {b.Minor.ToString(ic)}.";
         if (a.Patch != b.Patch)
-            return $"Differ at patch: {a.Patch} {op} {b.Patch}.";
+            return $"Differ at patch: {a.Patch.ToString(ic)} {op} {b.Patch.ToString(ic)}.";
         if (a.IsPrerelease != b.IsPrerelease)
             return $"{a} {op} {b} (a pre-release version precedes its release).";
 
@@ -75,7 +77,10 @@ public static class SemverTool
     /// Checks whether <paramref name="version"/> satisfies <paramref name="range"/>. Supported grammar: one or
     /// more space-separated clauses (all must match, i.e. AND), each of the form <c>^x.y.z</c>, <c>~x.y.z</c>,
     /// <c>&gt;=x.y.z</c>, <c>&gt;x.y.z</c>, <c>&lt;=x.y.z</c>, <c>&lt;x.y.z</c>, <c>=x.y.z</c>, or a bare
-    /// <c>x.y.z</c> (exact match).
+    /// <c>x.y.z</c> (exact match). Matches npm's pre-release exclusion rule: a pre-release version only satisfies
+    /// the range if at least one clause's operand shares its major.minor.patch and is itself a pre-release
+    /// (so <c>&gt;=1.0.0</c> does NOT match <c>1.0.1-alpha</c>, even though 1.0.1-alpha outranks 1.0.0 by raw
+    /// SemVer 2.0 precedence).
     /// </summary>
     /// <exception cref="FormatException">Version or range operand fails to parse, or the range is empty.</exception>
     public static RangeCheckResult Satisfies(string version, string range)
@@ -84,7 +89,21 @@ public static class SemverTool
         if (string.IsNullOrWhiteSpace(range))
             throw new FormatException("Enter a range expression.");
 
-        foreach (var clause in range.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        var clauses = range.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(ParseClause).ToList();
+        if (clauses.Count == 0)
+            throw new FormatException("Enter a range expression.");
+
+        if (v.IsPrerelease && !clauses.Any(c => c.Target.IsPrerelease
+                && c.Target.Major == v.Major && c.Target.Minor == v.Minor && c.Target.Patch == v.Patch))
+        {
+            var ic = CultureInfo.InvariantCulture;
+            return new RangeCheckResult(false,
+                $"{v} is a pre-release; it can only satisfy a range that has a bound on "
+                + $"{v.Major.ToString(ic)}.{v.Minor.ToString(ic)}.{v.Patch.ToString(ic)} "
+                + "which is itself a pre-release (npm semantics).");
+        }
+
+        foreach (var clause in clauses)
         {
             if (!ClauseSatisfied(v, clause, out var note))
                 return new RangeCheckResult(false, note);
@@ -92,41 +111,58 @@ public static class SemverTool
         return new RangeCheckResult(true, "Satisfies all clauses.");
     }
 
-    private static bool ClauseSatisfied(SemVersion v, string clause, out string note)
+    /// <summary>One parsed range clause: its operator and operand version.</summary>
+    private readonly record struct RangeClause(string Op, SemVersion Target);
+
+    private static RangeClause ParseClause(string clause)
     {
         if (clause.StartsWith(">=", StringComparison.Ordinal))
-            return CompareClause(v, clause[2..], o => o >= 0, ">=", out note);
+            return new RangeClause(">=", ParseVersion(clause[2..]));
         if (clause.StartsWith("<=", StringComparison.Ordinal))
-            return CompareClause(v, clause[2..], o => o <= 0, "<=", out note);
+            return new RangeClause("<=", ParseVersion(clause[2..]));
         if (clause.StartsWith('>'))
-            return CompareClause(v, clause[1..], o => o > 0, ">", out note);
+            return new RangeClause(">", ParseVersion(clause[1..]));
         if (clause.StartsWith('<'))
-            return CompareClause(v, clause[1..], o => o < 0, "<", out note);
+            return new RangeClause("<", ParseVersion(clause[1..]));
         if (clause.StartsWith('='))
-            return CompareClause(v, clause[1..], o => o == 0, "=", out note);
-
+            return new RangeClause("=", ParseVersion(clause[1..]));
         if (clause.StartsWith('^'))
-        {
-            var target = ParseVersion(clause[1..]);
-            var ok = SatisfiesCaret(v, target);
-            note = ok ? $"{v} is compatible with ^{target}" : $"{v} is not compatible with ^{target}";
-            return ok;
-        }
+            return new RangeClause("^", ParseVersion(clause[1..]));
         if (clause.StartsWith('~'))
-        {
-            var target = ParseVersion(clause[1..]);
-            var ok = SatisfiesTilde(v, target);
-            note = ok ? $"{v} is compatible with ~{target}" : $"{v} is not compatible with ~{target}";
-            return ok;
-        }
+            return new RangeClause("~", ParseVersion(clause[1..]));
 
         // Bare version: exact precedence match.
-        return CompareClause(v, clause, o => o == 0, "=", out note);
+        return new RangeClause("=", ParseVersion(clause));
     }
 
-    private static bool CompareClause(SemVersion v, string operand, Func<int, bool> predicate, string opLabel, out string note)
+    private static bool ClauseSatisfied(SemVersion v, RangeClause clause, out string note) => clause.Op switch
     {
-        var target = ParseVersion(operand);
+        ">=" => CompareClause(v, clause.Target, o => o >= 0, ">=", out note),
+        "<=" => CompareClause(v, clause.Target, o => o <= 0, "<=", out note),
+        ">" => CompareClause(v, clause.Target, o => o > 0, ">", out note),
+        "<" => CompareClause(v, clause.Target, o => o < 0, "<", out note),
+        "=" => CompareClause(v, clause.Target, o => o == 0, "=", out note),
+        "^" => CaretClause(v, clause.Target, out note),
+        "~" => TildeClause(v, clause.Target, out note),
+        _ => throw new InvalidOperationException($"Unreachable range operator '{clause.Op}'."),
+    };
+
+    private static bool CaretClause(SemVersion v, SemVersion target, out string note)
+    {
+        var ok = SatisfiesCaret(v, target);
+        note = ok ? $"{v} is compatible with ^{target}" : $"{v} is not compatible with ^{target}";
+        return ok;
+    }
+
+    private static bool TildeClause(SemVersion v, SemVersion target, out string note)
+    {
+        var ok = SatisfiesTilde(v, target);
+        note = ok ? $"{v} is compatible with ~{target}" : $"{v} is not compatible with ~{target}";
+        return ok;
+    }
+
+    private static bool CompareClause(SemVersion v, SemVersion target, Func<int, bool> predicate, string opLabel, out string note)
+    {
         var order = v.ComparePrecedenceTo(target);
         var ok = predicate(order);
         note = ok ? $"{v} {opLabel} {target}" : $"{v} is not {opLabel} {target}";

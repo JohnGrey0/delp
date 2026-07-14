@@ -84,4 +84,31 @@ public class AsciiArtToolTests
         var art = AsciiArtTool.Render("2026", "Standard");
         Assert.False(string.IsNullOrWhiteSpace(art));
     }
+
+    [Fact]
+    public void Render_Small_KeepsClosingStrokeSoLettersStayDistinguishable()
+    {
+        // Regression test: a naive "every other row starting at 0" downsample drops the last row entirely, which
+        // erases I's bottom bar (making it look like a "T") and L's foot (making it look like a bare "|"). The
+        // fix keeps the first, middle, and last row so those closing strokes survive.
+        var i = AsciiArtTool.Render("I", "Small").Split('\n');
+        var t = AsciiArtTool.Render("T", "Small").Split('\n');
+        Assert.NotEqual(t, i);
+        Assert.Equal(3, i.Length);
+        Assert.EndsWith("#####", i[0].TrimEnd());
+        Assert.EndsWith("#####", i[2].TrimEnd());
+
+        var l = AsciiArtTool.Render("L", "Small").Split('\n');
+        Assert.Contains('#', l[2][1..]); // the foot: something lit beyond the leading stem column
+    }
+
+    [Fact]
+    public void Render_Block_IsNotJustStandardWithASwappedInkCharacter()
+    {
+        // Standard and Block must be genuinely distinct glyph shapes, not the same bitmap with a different fill
+        // character (Block is bold/width-doubled).
+        var standard = AsciiArtTool.Render("HI", "Standard");
+        var block = AsciiArtTool.Render("HI", "Block").Replace('█', '#');
+        Assert.NotEqual(standard, block);
+    }
 }

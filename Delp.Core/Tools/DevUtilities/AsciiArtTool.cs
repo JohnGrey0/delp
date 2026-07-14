@@ -11,8 +11,9 @@ namespace Delp.Core.Tools.DevUtilities;
 /// which is <em>not</em> among Delp's referenced packages (only the core <c>Figgle</c> parser/renderer is
 /// referenced, and CONVENTIONS.md forbids adding packages). Per CONVENTIONS.md's fallback rule ("if something
 /// seems missing, implement it by hand"), this tool instead hand-rolls a small 5x6 bitmap glyph bank (A-Z, 0-9,
-/// space, and common punctuation) and derives several distinct "fonts" from it programmatically
-/// (block ink, 2x scale, row-downsampled, drop-shadow, slant). It does not use the Figgle package at all.
+/// space, and common punctuation) and derives several visually distinct "fonts" from it programmatically: a bold
+/// width-doubled block face, a uniformly 2x-scaled "Big" face, a top/middle/bottom row-sampled "Small" face, a
+/// drop-shadowed face, and a cascading-indent "Slant" face. It does not use the Figgle package at all.
 /// </remarks>
 public static class AsciiArtTool
 {
@@ -35,7 +36,11 @@ public static class AsciiArtTool
 
     private static readonly IReadOnlyDictionary<char, string[]> Glyphs = BuildGlyphs();
 
-    /// <summary>Renders <paramref name="text"/> (uppercased) using the named font.</summary>
+    /// <summary>
+    /// Renders <paramref name="text"/> (uppercased) using the named font. Characters with no glyph in the bank
+    /// (anything outside A-Z, 0-9, space, and the handful of supported punctuation marks) degrade gracefully to a
+    /// blank glyph cell rather than throwing.
+    /// </summary>
     /// <exception cref="FormatException">Text is empty, or the font name is not one of <see cref="FontNames"/>.</exception>
     public static string Render(string text, string fontName)
     {
@@ -54,7 +59,7 @@ public static class AsciiArtTool
         return canonical switch
         {
             StandardFont => Compose(rows, '#'),
-            BlockFont => Compose(rows, '█'),
+            BlockFont => Compose(ScaleWidth(rows, 2), '█'),
             BigFont => Compose(Scale(rows, 2), '#'),
             SmallFont => Compose(Downsample(rows), '#'),
             ShadowFont => ComposeShadow(rows),
@@ -89,20 +94,35 @@ public static class AsciiArtTool
         var scaled = new List<string>(rows.Count * factor);
         foreach (var row in rows)
         {
-            var wideRow = string.Concat(row.Select(c => new string(c, factor)));
+            var wideRow = ScaleRow(row, factor);
             for (var i = 0; i < factor; i++)
                 scaled.Add(wideRow);
         }
         return scaled;
     }
 
-    /// <summary>Compact variant: takes every other row of the base glyphs (6 rows -> 3 rows).</summary>
+    /// <summary>Widens each glyph <paramref name="factor"/>x without stretching its height, for a flat, bold look.</summary>
+    private static List<string> ScaleWidth(List<string> rows, int factor) =>
+        rows.Select(row => ScaleRow(row, factor)).ToList();
+
+    private static string ScaleRow(string row, int factor) =>
+        string.Concat(row.Select(c => new string(c, factor)));
+
+    /// <summary>
+    /// Compact variant: keeps only the top, middle, and bottom rows of the base glyphs (6 rows -&gt; 3 rows).
+    /// Deliberately not "every other row starting at 0" (0,2,4): that drops row 5, which carries the closing
+    /// stroke most letters rely on to stay legible (e.g. I's bottom bar, L's foot, U's and O's bottom curve) —
+    /// with the naive scheme "I" renders indistinguishably from "T" once downsampled.
+    /// </summary>
     private static List<string> Downsample(List<string> rows)
     {
-        var result = new List<string>();
-        for (var i = 0; i < rows.Count; i += 2)
-            result.Add(rows[i]);
-        return result;
+        if (rows.Count == 0)
+            return rows;
+        var mid = (rows.Count - 1) / 2;
+        var last = rows.Count - 1;
+        return mid == 0 || mid == last
+            ? new List<string> { rows[0], rows[last] }
+            : new List<string> { rows[0], rows[mid], rows[last] };
     }
 
     private static List<string> Slant(List<string> rows)

@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.DevUtilities;
@@ -13,6 +14,8 @@ namespace Delp.App.Tools.DevUtilities;
     Keywords = "qr,qrcode,barcode,wifi,link", Order = 10)]
 public partial class QrCodeView : UserControl
 {
+    // QR encoding (QRCodeGenerator + PNG rasterization) is too expensive to run on every keystroke; debounce it.
+    private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private byte[]? _pngBytes;
 
     public QrCodeView()
@@ -21,6 +24,11 @@ public partial class QrCodeView : UserControl
         AuthCombo.SelectedIndex = 0;
         EccCombo.SelectedIndex = 1; // M
         SizeCombo.SelectedIndex = 1; // Medium
+        _debounce.Tick += (_, _) =>
+        {
+            _debounce.Stop();
+            Render();
+        };
         Loaded += (_, _) => Render();
     }
 
@@ -29,13 +37,19 @@ public partial class QrCodeView : UserControl
     private void Input_Changed(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
-            Render();
+            Debounce();
     }
 
     private void Source_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (IsLoaded)
-            Render();
+            Debounce();
+    }
+
+    private void Debounce()
+    {
+        _debounce.Stop();
+        _debounce.Start();
     }
 
     private void Render()

@@ -119,4 +119,31 @@ public class BranchToolTests
         var violations = BranchTool.Validate("feature/abc-123-add-login-page");
         Assert.Empty(violations);
     }
+
+    [Theory]
+    [InlineData("has\u0001control")] // SOH: a non-whitespace ASCII control character
+    [InlineData("has\u007fdel")] // DEL
+    public void Validate_CatchesControlCharacters(string badName)
+    {
+        var violations = BranchTool.Validate(badName);
+        Assert.Contains(violations, v => v.Contains("control character", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Make_StripsControlCharactersFromTicket()
+    {
+        // The ticket field isn't slugified (only trimmed/uppercased), so a pasted control character must be
+        // caught by SanitizeGitRef's final pass, same as the other git-illegal characters.
+        var options = new BranchOptions("feature", "AB\u0001C-1", "{ticket}", 60);
+        var name = BranchTool.Make("x", options);
+        Assert.DoesNotContain('\u0001', name);
+    }
+
+    [Fact]
+    public void Make_StripsDelCharacterFromTicket()
+    {
+        var options = new BranchOptions("feature", "AB\u007fC-1", "{ticket}", 60);
+        var name = BranchTool.Make("x", options);
+        Assert.DoesNotContain('\u007f', name);
+    }
 }

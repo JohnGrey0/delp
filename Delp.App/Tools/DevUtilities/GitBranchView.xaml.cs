@@ -29,10 +29,12 @@ public partial class GitBranchView : UserControl
 
     private void TypeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!IsLoaded)
+            return;
+
         var isCustom = (TypeCombo.SelectedItem as ComboBoxItem)?.Tag as string == "custom";
         CustomTypeBox.Visibility = isCustom ? Visibility.Visible : Visibility.Collapsed;
-        if (IsLoaded)
-            GenerateName();
+        GenerateName();
     }
 
     private void Input_Changed(object sender, RoutedEventArgs e)

@@ -132,6 +132,19 @@ public class SemverToolTests
         Assert.Equal(expected, SemverTool.Satisfies(version, range).Satisfies);
     }
 
+    // npm semantics: a pre-release version only satisfies a range when the range has a bound on the SAME
+    // major.minor.patch that is itself a pre-release — raw SemVer 2.0 precedence alone is not enough.
+    [Theory]
+    [InlineData("1.0.1-alpha", ">=1.0.0", false)] // 1.0.1-alpha outranks 1.0.0 by precedence, but no comparator shares its 1.0.1 tuple
+    [InlineData("1.0.1-alpha", "^1.0.0", false)] // same exclusion applies to caret ranges
+    [InlineData("1.0.1-alpha", ">=1.0.1-alpha", true)] // comparator shares the 1.0.1 tuple and is itself a pre-release
+    [InlineData("1.0.1-alpha", ">=1.0.1-beta", false)] // shares the tuple but alpha precedes beta
+    [InlineData("1.5.0", ">=1.0.0", true)] // non-prerelease versions are never subject to the exclusion
+    public void Satisfies_PrereleaseExclusion_MatchesNpmSemantics(string version, string range, bool expected)
+    {
+        Assert.Equal(expected, SemverTool.Satisfies(version, range).Satisfies);
+    }
+
     [Fact]
     public void Satisfies_SpaceJoinedAnd_RequiresAllClauses()
     {

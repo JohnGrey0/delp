@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -53,15 +54,15 @@ public partial class SemverView : UserControl
             BreakdownList.ItemsSource = new[]
             {
                 new BreakdownRow(
-                    "Major", breakdownA.Major.ToString(), breakdownB.Major.ToString(),
+                    "Major", breakdownA.Major.ToString(CultureInfo.InvariantCulture), breakdownB.Major.ToString(CultureInfo.InvariantCulture),
                     breakdownA.Major != breakdownB.Major ? accent : neutral,
                     breakdownA.Major != breakdownB.Major ? accent : neutral),
                 new BreakdownRow(
-                    "Minor", breakdownA.Minor.ToString(), breakdownB.Minor.ToString(),
+                    "Minor", breakdownA.Minor.ToString(CultureInfo.InvariantCulture), breakdownB.Minor.ToString(CultureInfo.InvariantCulture),
                     breakdownA.Minor != breakdownB.Minor ? accent : neutral,
                     breakdownA.Minor != breakdownB.Minor ? accent : neutral),
                 new BreakdownRow(
-                    "Patch", breakdownA.Patch.ToString(), breakdownB.Patch.ToString(),
+                    "Patch", breakdownA.Patch.ToString(CultureInfo.InvariantCulture), breakdownB.Patch.ToString(CultureInfo.InvariantCulture),
                     breakdownA.Patch != breakdownB.Patch ? accent : neutral,
                     breakdownA.Patch != breakdownB.Patch ? accent : neutral),
                 new BreakdownRow(

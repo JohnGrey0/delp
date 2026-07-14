@@ -77,6 +77,8 @@ public static class BranchTool
             violations.Add("Must not start or end with '-'.");
         if (branchName.Any(char.IsWhiteSpace))
             violations.Add("Must not contain whitespace.");
+        if (branchName.Any(c => (c < 0x20 && !char.IsWhiteSpace(c)) || c == 0x7F))
+            violations.Add("Must not contain ASCII control characters.");
         foreach (var bad in BadRefChars)
         {
             if (branchName.Contains(bad))
@@ -163,7 +165,7 @@ public static class BranchTool
         var sb = new StringBuilder(name.Length);
         foreach (var c in name)
         {
-            if (Array.IndexOf(BadRefChars, c) >= 0 || char.IsWhiteSpace(c) || c < 0x20)
+            if (Array.IndexOf(BadRefChars, c) >= 0 || char.IsWhiteSpace(c) || c < 0x20 || c == 0x7F)
                 continue;
             sb.Append(c);
         }

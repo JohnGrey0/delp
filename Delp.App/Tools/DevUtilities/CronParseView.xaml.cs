@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.DevUtilities;
 
@@ -11,16 +12,27 @@ namespace Delp.App.Tools.DevUtilities;
     Keywords = "cron,crontab,schedule,quartz", Order = 20)]
 public partial class CronParseView : UserControl
 {
+    // Explain() re-parses with Cronos and re-runs CronExpressionDescriptor; too expensive per keystroke, so debounce.
+    private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
+
     public CronParseView()
     {
         InitializeComponent();
+        _debounce.Tick += (_, _) =>
+        {
+            _debounce.Stop();
+            Explain();
+        };
         Loaded += (_, _) => Explain();
     }
 
     private void Input_Changed(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
-            Explain();
+        {
+            _debounce.Stop();
+            _debounce.Start();
+        }
     }
 
     private void Explain()
@@ -34,7 +46,7 @@ public partial class CronParseView : UserControl
             var now = DateTime.Now;
             NextRunsList.ItemsSource = report.NextLocal
                 .Select(dt => new NextRunRow(
-                    dt.ToString("ddd, MMM d yyyy  HH:mm:ss", CultureInfo.InvariantCulture),
+                    dt.ToString("ddd, MMM d yyyy  HH:mm:ss", CultureInfo.CurrentCulture),
                     Relative(dt, now)))
                 .ToList();
 
