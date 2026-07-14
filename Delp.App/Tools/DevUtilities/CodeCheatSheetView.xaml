@@ -1,0 +1,62 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.CodeCheatSheetView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock x:Name="StatusText"
+                       DockPanel.Dock="Right"
+                       VerticalAlignment="Center"
+                       Margin="10,0,0,0"
+                       Style="{StaticResource Text.Sub}" />
+            <TextBox x:Name="SearchBox"
+                     Style="{StaticResource TextBox.Search}"
+                     Tag="Search topics, categories…"
+                     TextChanged="SearchBox_TextChanged" />
+        </DockPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ListBox x:Name="TopicList"
+                     Grid.Column="0"
+                     SelectionChanged="TopicList_SelectionChanged">
+                <ListBox.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"
+                                           Style="{StaticResource Text.Section}"
+                                           Margin="6,12,0,4" />
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ListBox.GroupStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Title}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource Brush.Fg0}"
+                                   FontSize="13" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <DockPanel x:Name="DetailPanel" Grid.Column="2">
+                <TextBlock x:Name="TitleText"
+                           DockPanel.Dock="Top"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource Text.Title}" />
+                <TextBlock x:Name="ExplanationText"
+                           DockPanel.Dock="Top"
+                           Margin="0,6,0,10"
+                           Style="{StaticResource Text.Sub}" />
+                <TabControl x:Name="LanguageTabs" SelectionChanged="LanguageTabs_SelectionChanged" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

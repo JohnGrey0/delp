@@ -1,0 +1,56 @@
+<UserControl x:Class="Delp.App.Tools.DataFormat.TomlParseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0"
+                       Grid.Column="0"
+                       Margin="0,0,0,6">
+                <Button x:Name="CopyTomlBtn"
+                        DockPanel.Dock="Right"
+                        Content="Copy"
+                        Click="CopyToml_Click" />
+                <TextBlock VerticalAlignment="Center"
+                           Style="{StaticResource Text.Section}"
+                           Text="TOML" />
+            </DockPanel>
+            <Border x:Name="TomlHost"
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Style="{StaticResource Card.Editor}" />
+
+            <DockPanel Grid.Row="0"
+                       Grid.Column="2"
+                       Margin="0,0,0,6">
+                <Button x:Name="CopyJsonBtn"
+                        DockPanel.Dock="Right"
+                        Content="Copy"
+                        Click="CopyJson_Click" />
+                <TextBlock VerticalAlignment="Center"
+                           Style="{StaticResource Text.Section}"
+                           Text="JSON" />
+            </DockPanel>
+            <Border x:Name="JsonHost"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Style="{StaticResource Card.Editor}" />
+        </Grid>
+    </DockPanel>
+</UserControl>

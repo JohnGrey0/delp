@@ -1,0 +1,164 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.SslDecodeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TabControl x:Name="ModeTabs" DockPanel.Dock="Top" Height="Auto">
+            <TabItem Header="PASTE PEM">
+                <StackPanel Margin="0,4,0,0">
+                    <TextBlock Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="CERTIFICATE (PEM OR BASE64 DER)" />
+                    <TextBox x:Name="PemBox"
+                             Height="96"
+                             Style="{StaticResource TextBox.Mono}"
+                             TextChanged="PemBox_TextChanged" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="FROM HOST">
+                <StackPanel Margin="0,4,0,0">
+                    <WrapPanel Orientation="Horizontal">
+                        <StackPanel Margin="0,0,10,8" MinWidth="160">
+                            <TextBlock Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="HOST" />
+                            <TextBox x:Name="HostBox" Text="example.com" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,10,8" Width="80">
+                            <TextBlock Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="PORT" />
+                            <TextBox x:Name="PortBox" Text="443" />
+                        </StackPanel>
+                        <Button x:Name="FetchBtn"
+                                Margin="0,20,0,8"
+                                Style="{StaticResource Button.Primary}"
+                                Content="Fetch"
+                                Click="Fetch_Click" />
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Text.Sub}"
+                               Text="Connects to the host over TLS (5 s timeout) to read the certificate chain it presents. This is the only network call anywhere in this tool." />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Top"
+                   Margin="0,10,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <ScrollViewer Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="CertsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,12" Padding="14" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{Binding DaysRemaining, StringFormat='valid {0}d'}" />
+                                                <Setter Property="Foreground" Value="{StaticResource Brush.Success}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                        <Setter Property="Text" Value="EXPIRED" />
+                                                        <Setter Property="Foreground" Value="{StaticResource Brush.Danger}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Style="{StaticResource Text.Title}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding SubjectCommonName}" />
+                                </DockPanel>
+
+                                <TextBlock Margin="0,12,0,2" Style="{StaticResource Text.Section}" Text="SUBJECT" />
+                                <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SubjectDn}" />
+
+                                <TextBlock Margin="0,10,0,2" Style="{StaticResource Text.Section}" Text="ISSUER" />
+                                <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding IssuerDn}" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" MinWidth="140" />
+                                        <ColumnDefinition Width="*" MinWidth="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="NOT BEFORE" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding NotBefore, StringFormat='{}{0:yyyy-MM-dd HH:mm} UTC'}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="NOT AFTER" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding NotAfter, StringFormat='{}{0:yyyy-MM-dd HH:mm} UTC'}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Margin="0,10,0,2" Style="{StaticResource Text.Section}" Text="SUBJECT ALTERNATIVE NAMES" />
+                                <ItemsControl ItemsSource="{Binding SubjectAlternativeNames}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" MinWidth="140" />
+                                        <ColumnDefinition Width="*" MinWidth="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="KEY ALGORITHM" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding KeyAlgorithm}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="SIGNATURE ALGORITHM" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SignatureAlgorithm}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Margin="0,10,0,2" Style="{StaticResource Text.Section}" Text="EXTENDED KEY USAGE" />
+                                <ItemsControl ItemsSource="{Binding ExtendedKeyUsages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Margin="0,10,0,0"
+                                           Style="{StaticResource Text.Sub}"
+                                           Text="{Binding IsCa, StringFormat='CA certificate: {0}'}" />
+                                <TextBlock Style="{StaticResource Text.Sub}"
+                                           Text="{Binding IsSelfSigned, StringFormat='Self-signed: {0}'}" />
+
+                                <DockPanel Margin="0,10,0,0">
+                                    <Button DockPanel.Dock="Right" Content="Copy" Tag="{Binding SerialNumber}" Click="CopyField_Click" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="SERIAL" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SerialNumber}" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <DockPanel Margin="0,10,0,0">
+                                    <Button DockPanel.Dock="Right" Content="Copy" Tag="{Binding Sha1Thumbprint}" Click="CopyField_Click" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="SHA-1 THUMBPRINT" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding Sha1Thumbprint}" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <DockPanel Margin="0,10,0,0">
+                                    <Button DockPanel.Dock="Right" Content="Copy" Tag="{Binding Sha256Thumbprint}" Click="CopyField_Click" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Text.Section}" Text="SHA-256 THUMBPRINT" />
+                                        <TextBlock Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding Sha256Thumbprint}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

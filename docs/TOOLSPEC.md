@@ -1089,3 +1089,70 @@ debounce. Status: "512 tokens · 289 unique · 14 sentences".
 conditional→condit, rational→ration, flying→fli, dies→die), stopword removal
 incl. user extras, pipeline order (stemming after stopwords), ngram counts,
 frequency ordering, empty input.
+
+---
+
+## Batch O — Linter & List Converter
+
+### code-linter — Code Linter · DevUtilities · 150 · `lint,linter,syntax,check,errors,csharp,javascript`
+**Core** `LintTool.Lint(string code, LintLanguage lang)` →
+`IReadOnlyList<LintIssue(int Line, int Col, LintSeverity Severity /*Error,
+Warning,Info*/, string Code, string Message)>`, sorted by line.
+Language tiers (be honest in the UI about depth):
+- **CSharp** — Roslyn (`Microsoft.CodeAnalysis.CSharp`, already referenced):
+  `CSharpSyntaxTree.ParseText` (LanguageVersion.Latest; top-level statements
+  fine) + `CSharpCompilation.Create` with a small static reference set built
+  ONCE (Lazy) from the running runtime's trusted assemblies (object,
+  System.Runtime, System.Console, System.Linq, System.Collections) so
+  undefined variables/types produce real semantic diagnostics. Map
+  Diagnostic → LintIssue (skip Hidden severity). Compilation is expensive:
+  the LAZY reference set is mandatory, and the view runs Lint via Task.Run.
+- **JavaScript** — NUglify `Uglify.Js` errors AND warnings mapped with
+  line/col (minified output discarded).
+- **Json** — System.Text.Json parse; single Error issue with line/col.
+- **Generic** (used for the Python and Plain-text choices) — hand-rolled
+  checks: unbalanced () [] {} (line of first imbalance), mixed tabs+spaces
+  on the same line (Warning), trailing whitespace (Info, aggregated "N
+  lines"), lines >120 chars (Info, aggregated), TODO/FIXME per line (Info).
+  For Python additionally flag inconsistent indent widths between
+  consecutive indented blocks (Warning, heuristic).
+**UI** language ComboBox (C#, JavaScript, JSON, Python (basic checks),
+Plain text); input via CodeEditors.Create (plain) in Card.Editor; ISSUES
+panel below in a virtualizing ListBox: severity dot (Danger/Warning/Fg2) +
+`line:col` mono + message; clicking an issue scrolls the editor to the line.
+Status "2 errors · 3 warnings · 5 info in 41 ms". Debounced 500 ms +
+Task.Run, results swapped atomically. Note under the combo: "C#: full
+syntax+semantic (Roslyn) · JS: parser · Python: basic checks only".
+**Edge** 1 MB input stays responsive; C# snippet without Main works
+(top-level statements); switching language re-lints; empty input → no issues.
+**Tests** C# syntax error position; C# semantic error (CS0103 undefined
+variable); clean C# top-level program → no errors; JS syntax error line;
+JSON error; bracket imbalance line; mixed tabs/spaces; long-line and TODO
+aggregation; empty input.
+
+### text-to-list — Text → List / CSV · TextProcessing · 150 · `list,array,python,csv,split,delimiter,words,sql in`
+**Core** `TextListTool`:
+`Split(string text, SplitMode mode /*Words, Lines, Delimiter*/, string?
+delimiter, TextListOptions(bool Trim, bool RemoveEmpty, bool Dedupe, bool
+Lowercase, bool StripPunctuation))` → `List<string>`. Words mode = unicode
+word segmentation (letters/digits/apostrophes; hyphens kept inside words);
+Delimiter mode splits on the literal string (default ","); StripPunctuation
+trims leading/trailing punctuation per item in Lines/Delimiter modes.
+Dedupe is case-insensitive when Lowercase is on, ordinal otherwise; input
+order preserved.
+`Format(IReadOnlyList<string> items, ListFormat format, QuoteChar quote
+/*Double,Single,None where applicable*/)` → string. Formats with CORRECT
+per-format escaping: PythonList (`['a', 'b']`, backslash-escape \ and the
+active quote), JsonArray (via JsonSerializer, always double quotes),
+JsArray, CSharpArray (`new[] { "a", "b" }`), CsvLine (RFC 4180, comma),
+CsvColumn (one per line, quoted only when needed), SqlIn (`('a', 'b')`,
+single-quote doubling, quote option ignored), PlainLines, SpaceJoined.
+Formats that mandate a quote style ignore the QuoteChar option (UI note).
+**UI** INPUT pane; options: mode RadioButtons (Words / Lines / Delimiter +
+TextBox visible in Delimiter mode), CheckBoxes (Trim on, Remove empty on,
+Dedupe, Lowercase, Strip punctuation), format ComboBox + quote ComboBox;
+OUTPUT readonly mono + Copy; status "12 items". Live update.
+**Tests** word split of a punctuated sentence; escaping pinned per format
+(O'Brien through SqlIn, a quoted word through PythonList/JsonArray); CSV
+field with comma/newline; delimiter mode; dedupe+lowercase interplay; strip
+punctuation; empty input → empty container per format (e.g. `[]`).
