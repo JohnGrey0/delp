@@ -123,4 +123,153 @@ public class LineToolTests
         Assert.Equal(0, result.After);
         Assert.Equal("", result.Text);
     }
+
+    // ---- Q-U5: filter ----
+
+    [Fact]
+    public void Process_FilterKeep_Plain_KeepsMatchingSubstring()
+    {
+        var result = LineTool.Process("apple\nbanana\ngrape",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "an"));
+        Assert.Equal(["banana"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_FilterRemove_Plain_DropsMatchingSubstring()
+    {
+        var result = LineTool.Process("apple\nbanana\ngrape",
+            new LineToolOptions(Filter: LineFilterMode.Remove, FilterPattern: "an"));
+        Assert.Equal(["apple", "grape"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_FilterKeep_Plain_HonorsCaseInsensitiveOption()
+    {
+        var noCi = LineTool.Process("Apple\nbanana", new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "APPLE"));
+        Assert.Equal([], Lines(noCi));
+
+        var withCi = LineTool.Process("Apple\nbanana",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "APPLE", CaseInsensitive: true));
+        Assert.Equal(["Apple"], Lines(withCi));
+    }
+
+    [Fact]
+    public void Process_FilterKeep_Regex_MatchesPattern()
+    {
+        var result = LineTool.Process("a1\nb22\nc333",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: @"\d{2,}", FilterRegex: true));
+        Assert.Equal(["b22", "c333"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_FilterRemove_Regex_CaseInsensitive()
+    {
+        var result = LineTool.Process("ERROR: bad\ninfo: ok\nError: also bad",
+            new LineToolOptions(Filter: LineFilterMode.Remove, FilterPattern: "^error", FilterRegex: true, CaseInsensitive: true));
+        Assert.Equal(["info: ok"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_FilterRegex_InvalidPattern_ThrowsFormatException()
+    {
+        var ex = Assert.Throws<FormatException>(() => LineTool.Process("a\nb",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "[unterminated", FilterRegex: true)));
+        Assert.Contains("pattern", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Process_Filter_EmptyPattern_IsNoOp()
+    {
+        var result = LineTool.Process("a\nb\nc",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: ""));
+        Assert.Equal(["a", "b", "c"], Lines(result));
+        Assert.Null(result.FilteredKept);
+        Assert.Null(result.FilteredTotal);
+    }
+
+    [Fact]
+    public void Process_FilterOff_LeavesFilteredCountsNull()
+    {
+        var result = LineTool.Process("a\nb", new LineToolOptions(Filter: LineFilterMode.Off, FilterPattern: "a"));
+        Assert.Equal(["a", "b"], Lines(result));
+        Assert.Null(result.FilteredKept);
+        Assert.Null(result.FilteredTotal);
+    }
+
+    [Fact]
+    public void Process_Filter_StatusCounts_ReportKeptOfTotal()
+    {
+        // "ap" is a substring of "apple" and "grape" but not "banana" or "cherry".
+        var result = LineTool.Process("apple\nbanana\ngrape\ncherry",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "ap"));
+        Assert.Equal(2, result.FilteredKept);
+        Assert.Equal(4, result.FilteredTotal);
+    }
+
+    [Fact]
+    public void Process_Filter_RunsBeforeDedupe_StatusReflectsPreDedupeTotal()
+    {
+        // "a" appears twice; filter should see both (total=3) before dedupe collapses them.
+        var result = LineTool.Process("a\na\nb",
+            new LineToolOptions(Filter: LineFilterMode.Keep, FilterPattern: "a", Dedupe: true));
+
+        Assert.Equal(3, result.FilteredTotal); // all 3 lines were fed to the filter
+        Assert.Equal(2, result.FilteredKept);  // both "a" lines passed the filter
+        Assert.Equal(1, result.After);         // dedupe then collapsed them to one
+        Assert.Equal(["a"], Lines(result));
+    }
+
+    // ---- Q-U5: numbering ----
+
+    [Fact]
+    public void Process_NumberLines_DefaultStartAndStep()
+    {
+        var result = LineTool.Process("a\nb\nc", new LineToolOptions(NumberLines: true));
+        Assert.Equal(["1. a", "2. b", "3. c"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_NumberLines_CustomStartStepAndPad()
+    {
+        var result = LineTool.Process("a\nb\nc",
+            new LineToolOptions(NumberLines: true, NumberStart: 10, NumberStep: 5, NumberPad: 3));
+        Assert.Equal(["010. a", "015. b", "020. c"], Lines(result));
+    }
+
+    [Fact]
+    public void Process_NumberLines_AppliesAfterSortAndReverse()
+    {
+        // Numbering is the very last step, so the numbers must follow the final (sorted+reversed)
+        // order, not the original input order.
+        var result = LineTool.Process("banana\napple\ncherry",
+            new LineToolOptions(Mode: SortMode.Asc, Reverse: true, NumberLines: true));
+        Assert.Equal(["1. cherry", "2. banana", "3. apple"], Lines(result));
+    }
+
+    // ---- Q-U5: full pipeline ----
+
+    [Fact]
+    public void Process_FullPipeline_TrimRemoveEmptyFilterDedupeSortReverseNumber()
+    {
+        var input = "  banana  \n\n  apple\napple  \n  cherry\n  fig  ";
+        var result = LineTool.Process(input, new LineToolOptions(
+            Mode: SortMode.Asc,
+            TrimLines: true,
+            RemoveEmpty: true,
+            Filter: LineFilterMode.Remove,
+            FilterPattern: "fig",
+            Dedupe: true,
+            Reverse: true,
+            NumberLines: true,
+            NumberStart: 1));
+
+        // trim -> ["banana", "", "apple", "apple", "cherry", "fig"]
+        // remove empty -> ["banana", "apple", "apple", "cherry", "fig"]
+        // filter (remove "fig") -> ["banana", "apple", "apple", "cherry"]
+        // dedupe -> ["banana", "apple", "cherry"]
+        // sort asc -> ["apple", "banana", "cherry"]
+        // reverse -> ["cherry", "banana", "apple"]
+        // number -> ["1. cherry", "2. banana", "3. apple"]
+        Assert.Equal(["1. cherry", "2. banana", "3. apple"], Lines(result));
+    }
 }

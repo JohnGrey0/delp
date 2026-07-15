@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -8,7 +9,7 @@ namespace Delp.App.Tools.TextProcessing;
 
 [Tool("line-sort", "Line Sorter & Deduplicator", ToolCategory.TextProcessing,
     "Sort, deduplicate, and clean up lines of text.",
-    Keywords = "sort,dedupe,lines,unique,shuffle", Order = 50)]
+    Keywords = "sort,dedupe,lines,unique,shuffle,filter,grep,keep,remove,number lines,sequence", Order = 50)]
 public partial class LineSortView : UserControl
 {
     private readonly DispatcherTimer _debounce;
@@ -28,11 +29,31 @@ public partial class LineSortView : UserControl
         Run(Render);
     }
 
+    // Guarded like JsonPathView.PathBox_TextChanged: NumberStartBox/NumberStepBox/NumberPadBox
+    // carry XAML default Text values ("1"/"1"/"0"), which fire TextChanged synchronously during
+    // InitializeComponent — before _debounce is assigned — so this shared handler needs the same
+    // IsLoaded check the other controls it's wired to (which have no XAML defaults) don't strictly
+    // need. The constructor's explicit Run(Render) call after field initialization covers the
+    // initial state instead.
     private void Input_Changed(object sender, RoutedEventArgs e)
     {
+        if (!IsLoaded)
+            return;
         _debounce.Stop();
         _debounce.Start();
     }
+
+    // Toggles the start/step/pad row's visibility in addition to re-running conversion — a
+    // dedicated handler rather than reusing Input_Changed directly.
+    private void NumberLines_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+        NumberOptionsPanel.Visibility = Show(NumberLinesBox.IsChecked == true);
+        Input_Changed(sender, e);
+    }
+
+    private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 
     private SortMode ReadSortMode() => SortModeBox.SelectedIndex switch
     {
@@ -44,6 +65,16 @@ public partial class LineSortView : UserControl
         _ => SortMode.None,
     };
 
+    private LineFilterMode ReadFilterMode() => FilterModeBox.SelectedIndex switch
+    {
+        1 => LineFilterMode.Keep,
+        2 => LineFilterMode.Remove,
+        _ => LineFilterMode.Off,
+    };
+
+    private static int ParseIntOrDefault(string text, int fallback) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+
     private void Render()
     {
         var options = new LineToolOptions(
@@ -53,11 +84,20 @@ public partial class LineSortView : UserControl
             TrimLines: TrimBox.IsChecked == true,
             RemoveEmpty: RemoveEmptyBox.IsChecked == true,
             Reverse: ReverseBox.IsChecked == true,
-            Shuffle: ShuffleBox.IsChecked == true);
+            Shuffle: ShuffleBox.IsChecked == true,
+            Filter: ReadFilterMode(),
+            FilterPattern: FilterPatternBox.Text,
+            FilterRegex: FilterRegexBox.IsChecked == true,
+            NumberLines: NumberLinesBox.IsChecked == true,
+            NumberStart: ParseIntOrDefault(NumberStartBox.Text, 1),
+            NumberStep: ParseIntOrDefault(NumberStepBox.Text, 1),
+            NumberPad: ParseIntOrDefault(NumberPadBox.Text, 0));
 
         var result = LineTool.Process(InputBox.Text, options);
         OutputBox.Text = result.Text;
-        StatusText.Text = $"{result.Before} → {result.After} lines";
+        StatusText.Text = result.FilteredTotal is int total
+            ? $"{result.Before} → {result.After} lines · kept {result.FilteredKept} of {total}"
+            : $"{result.Before} → {result.After} lines";
     }
 
     private void CopyOutput_Click(object sender, RoutedEventArgs e) =>
