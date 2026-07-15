@@ -67,7 +67,10 @@ public static class ImageConvertSupport
         BitmapDecoder decoder;
         try
         {
-            var stream = new MemoryStream(bytes);
+            // BitmapCacheOption.OnLoad forces the decoder to fully materialize pixel data during
+            // Create(), so the stream can be disposed immediately after — nothing downstream keeps
+            // reading from it (and unlike a FileStream, this also never holds the source file open).
+            using var stream = new MemoryStream(bytes);
             decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
         }
         catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException)

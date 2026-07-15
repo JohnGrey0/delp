@@ -33,12 +33,21 @@ public partial class ImageConvertView : UserControl
 
     private void DropCard_PreviewDragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Effects = !_busy && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
     private async void DropCard_Drop(object sender, DragEventArgs e)
     {
+        // _busy already serializes load/transform/save/favicon against each other so a second
+        // drop can never land on top of state a still-running operation is about to overwrite —
+        // but silently swallowing the drop (the previous behavior) left the user with no idea
+        // why nothing happened. Say so instead.
+        if (_busy)
+        {
+            ShowError("Still processing the previous image — try again once it finishes.");
+            return;
+        }
         if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files)
             await LoadAsync(files[0]);
     }
@@ -217,7 +226,10 @@ public partial class ImageConvertView : UserControl
             SetResizeBoxes(result.PixelWidth, result.PixelHeight);
             if (_info is not null)
             {
-                _info = _info with { Width = result.PixelWidth, Height = result.PixelHeight };
+                // Resize re-renders at 96 DPI regardless of the source's DPI (see
+                // ImageConvertSupport.Resize), so the INFO panel's DPI row must track the
+                // transformed bitmap too — otherwise it keeps showing the pre-transform DPI.
+                _info = _info with { Width = result.PixelWidth, Height = result.PixelHeight, DpiX = result.DpiX, DpiY = result.DpiY };
                 RefreshInfoList();
             }
             ErrorText.Visibility = Visibility.Collapsed;
