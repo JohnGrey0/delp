@@ -36,7 +36,9 @@ public static class EpochTool
     // Ticks (epoch 0001-01-01) and FILETIME (epoch 1601-01-01) both land on 17-18 digit
     // numbers for any date within the two systems' shared usable range, so digit count alone
     // can't tell them apart. Ticks for any calendar year from roughly 950 AD onward are always
-    // >= this split; FILETIME stays below it until roughly the year 4700s. That covers every
+    // >= this split; FILETIME stays below it until roughly the year 2550s (1601 + ~950 years —
+    // the two systems use the same 100 ns unit, so they cross the same magnitude after the
+    // same span of elapsed years, just offset by their different epochs). That covers every
     // realistic pasted timestamp with room to spare.
     private const long FileTimeTicksSplit = 300_000_000_000_000_000L;
 

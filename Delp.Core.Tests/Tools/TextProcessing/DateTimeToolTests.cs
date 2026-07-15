@@ -235,4 +235,29 @@ public class DateTimeToolTests
     {
         Assert.Throws<FormatException>(() => DateTimeTool.AddUnits(DateTimeOffset.MaxValue, 1, DateMathUnit.Days));
     }
+
+    // DateTimeOffset.AddSeconds/Minutes/Hours/Days/AddDays(amount*7) silently no-op on NaN
+    // (the BCL's own range check and unchecked NaN->long tick conversion swallow it) instead
+    // of throwing, which would otherwise make "NaN" in the amount box return the base date
+    // unchanged with no error shown. AddUnits now rejects NaN explicitly for every unit.
+    [Theory]
+    [InlineData(DateMathUnit.Seconds)]
+    [InlineData(DateMathUnit.Minutes)]
+    [InlineData(DateMathUnit.Hours)]
+    [InlineData(DateMathUnit.Days)]
+    [InlineData(DateMathUnit.Weeks)]
+    [InlineData(DateMathUnit.Months)]
+    [InlineData(DateMathUnit.Years)]
+    public void AddUnits_NaNAmount_ThrowsFormatException_ForEveryUnit(DateMathUnit unit)
+    {
+        var baseDate = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        Assert.Throws<FormatException>(() => DateTimeTool.AddUnits(baseDate, double.NaN, unit));
+    }
+
+    [Fact]
+    public void AddUnits_PositiveInfinityAmount_ThrowsFormatException()
+    {
+        var baseDate = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        Assert.Throws<FormatException>(() => DateTimeTool.AddUnits(baseDate, double.PositiveInfinity, DateMathUnit.Days));
+    }
 }

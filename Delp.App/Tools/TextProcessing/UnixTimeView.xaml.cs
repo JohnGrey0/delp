@@ -64,7 +64,25 @@ public partial class UnixTimeView : UserControl
         ZoneRowsList.ItemsSource = _zoneRows;
         InitializeZoneCombo(SourceZoneBox);
         InitializeZoneCombo(AddZoneBox);
-        SourceZoneBox.Text = TimeZoneInfo.Local.DisplayName;
+
+        // ZONES is never the initially-selected tab, so SourceZoneBox's ControlTemplate
+        // (and therefore its PART_EditableTextBox) doesn't exist yet — setting .Text here
+        // only sets the DP. WPF applies the template (and syncs that DP into the new
+        // textbox, raising TextChanged) later, the first time the user actually opens the
+        // ZONES tab. Left alone, that deferred sync fires FilterZoneCombo as if the user
+        // had typed the local zone name, silently narrowing ItemsSource down to just the
+        // matching entry before the user ever sees the picker. Force ApplyTemplate now,
+        // under the guard, so that sync happens (and is swallowed) here instead.
+        _zoneFilterGuard = true;
+        try
+        {
+            SourceZoneBox.Text = TimeZoneInfo.Local.DisplayName;
+            SourceZoneBox.ApplyTemplate();
+        }
+        finally
+        {
+            _zoneFilterGuard = false;
+        }
         InitializePinnedZones();
 
         MathUnitBox.ItemsSource = MathUnitLabels;
@@ -348,11 +366,22 @@ public partial class UnixTimeView : UserControl
         var b = DateTimeTool.ParseFlexible(DeltaToBox.Text, now);
 
         var delta = DateTimeTool.Delta(a, b);
-        DeltaHumanText.Text = delta.Human;
-        DeltaDaysText.Text = delta.TotalDays.ToString("F2", CultureInfo.InvariantCulture);
-        DeltaHoursText.Text = delta.TotalHours.ToString("F2", CultureInfo.InvariantCulture);
-        DeltaMinutesText.Text = delta.TotalMinutes.ToString("F2", CultureInfo.InvariantCulture);
-        DeltaSecondsText.Text = delta.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture);
+
+        // DurationBreakdown keeps every magnitude non-negative and hands back Direction
+        // separately (see its doc comment) precisely so a caller can display sign however
+        // fits its UI — display it here, or "TO before FROM" would look identical to "TO
+        // after FROM" (both show as a plain positive "5 d").
+        DeltaHumanText.Text = delta.Direction switch
+        {
+            > 0 => $"TO is {delta.Human} after FROM",
+            < 0 => $"TO is {delta.Human} before FROM",
+            _ => "TO equals FROM",
+        };
+        var sign = delta.Direction < 0 ? "-" : "";
+        DeltaDaysText.Text = sign + delta.TotalDays.ToString("F2", CultureInfo.InvariantCulture);
+        DeltaHoursText.Text = sign + delta.TotalHours.ToString("F2", CultureInfo.InvariantCulture);
+        DeltaMinutesText.Text = sign + delta.TotalMinutes.ToString("F2", CultureInfo.InvariantCulture);
+        DeltaSecondsText.Text = sign + delta.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture);
         DeltaIsoText.Text = delta.Iso8601;
     });
 

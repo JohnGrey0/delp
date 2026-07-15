@@ -198,9 +198,18 @@ public static class DateTimeTool
     /// <see cref="DateTimeOffset.AddYears"/>), so they can land on a different day-of-month than
     /// a fixed-length shift would.</summary>
     /// <exception cref="FormatException">The result is out of the representable date
-    /// range.</exception>
+    /// range, or <paramref name="amount"/> is <see cref="double.NaN"/>.</exception>
     public static DateTimeOffset AddUnits(DateTimeOffset baseDate, double amount, DateMathUnit unit)
     {
+        // DateTimeOffset.AddSeconds/Minutes/Hours/Days silently no-op on NaN instead of
+        // throwing (the internal range check "milliseconds > max || milliseconds < -max" is
+        // always false for NaN, and the unchecked NaN-to-long tick conversion yields 0) — so
+        // without this guard, typing "NaN" for those units would return baseDate unchanged
+        // rather than surfacing an error. AddMonths/AddYears already reject NaN correctly via
+        // the checked(int) cast, but this keeps every unit's behavior consistent and explicit.
+        if (double.IsNaN(amount))
+            throw new FormatException($"'{amount}' is not a usable amount for date math.");
+
         try
         {
             return unit switch
