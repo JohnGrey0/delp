@@ -53,7 +53,10 @@ public static class XPathTool
     /// <summary>Parses <paramref name="xml"/> with XXE hardening: DTDs are prohibited outright
     /// (<see cref="DtdProcessing.Prohibit"/>) and there is no <see cref="XmlResolver"/> to resolve
     /// any external reference even if one slipped through, so external entities / external DTD
-    /// subsets / SSRF-via-XML can never be processed.</summary>
+    /// subsets / SSRF-via-XML can never be processed. Uses <see cref="XmlDocument"/> (loaded from
+    /// the same hardened <see cref="XmlReader"/>, with its own resolver also nulled out as a second
+    /// layer) rather than <see cref="XPathDocument"/> so <see cref="BuildPath"/> can key its
+    /// sibling-index cache off stable <see cref="XmlNode"/> identity — see <see cref="SiblingIndexCache"/>.</summary>
     private static XPathNavigator Parse(string xml)
     {
         if (string.IsNullOrWhiteSpace(xml))
@@ -69,8 +72,9 @@ public static class XPathTool
         {
             using var stringReader = new StringReader(xml);
             using var xmlReader = XmlReader.Create(stringReader, settings);
-            var document = new XPathDocument(xmlReader);
-            return document.CreateNavigator();
+            var document = new XmlDocument { XmlResolver = null };
+            document.Load(xmlReader);
+            return document.CreateNavigator()!;
         }
         catch (XmlException ex)
         {
@@ -82,6 +86,7 @@ public static class XPathTool
     {
         var matches = new List<XPathMatch>();
         var truncated = false;
+        var siblingIndex = new SiblingIndexCache();
 
         while (iterator.MoveNext())
         {
@@ -92,15 +97,15 @@ public static class XPathTool
             }
 
             var node = iterator.Current!;
-            matches.Add(BuildMatch(node));
+            matches.Add(BuildMatch(node, siblingIndex));
         }
 
         return new XPathResult(matches.Count, truncated, matches);
     }
 
-    private static XPathMatch BuildMatch(XPathNavigator node)
+    private static XPathMatch BuildMatch(XPathNavigator node, SiblingIndexCache siblingIndex)
     {
-        var path = BuildPath(node.Clone());
+        var path = BuildPath(node.Clone(), siblingIndex);
         return node.NodeType switch
         {
             XPathNodeType.Attribute => new XPathMatch(path, Truncate(node.Value), IsValue: true),
@@ -124,7 +129,7 @@ public static class XPathTool
     /// <summary>Builds an absolute, index-qualified path such as "/store/books/book[2]/@id" by
     /// walking up through ancestors. Every element segment carries a 1-based index among its
     /// same-name siblings so the path always identifies exactly one node.</summary>
-    private static string BuildPath(XPathNavigator node)
+    private static string BuildPath(XPathNavigator node, SiblingIndexCache siblingIndex)
     {
         var segments = new List<string>();
 
@@ -155,7 +160,7 @@ public static class XPathTool
 
         while (node.NodeType == XPathNodeType.Element)
         {
-            segments.Add(ElementSegment(node));
+            segments.Add(ElementSegment(node, siblingIndex));
             if (!node.MoveToParent())
                 break;
         }
@@ -164,21 +169,73 @@ public static class XPathTool
         return "/" + string.Join("/", segments);
     }
 
-    private static string ElementSegment(XPathNavigator node)
+    private static string ElementSegment(XPathNavigator node, SiblingIndexCache siblingIndex)
     {
         var name = QualifiedName(node);
-        var index = 1;
-
-        var sibling = node.Clone();
-        while (sibling.MoveToPrevious())
-        {
-            if (sibling.NodeType == XPathNodeType.Element && QualifiedName(sibling) == name)
-                index++;
-        }
-
+        var index = siblingIndex.GetIndex(node, name);
         return $"{name}[{index.ToString(CultureInfo.InvariantCulture)}]";
     }
 
     private static string QualifiedName(XPathNavigator node) =>
         string.IsNullOrEmpty(node.Prefix) ? node.LocalName : $"{node.Prefix}:{node.LocalName}";
+
+    private static string QualifiedName(XmlNode node) =>
+        string.IsNullOrEmpty(node.Prefix) ? node.LocalName : $"{node.Prefix}:{node.LocalName}";
+
+    /// <summary>Memoizes each element's 1-based index among its same-name siblings, keyed by
+    /// stable <see cref="XmlNode"/> identity (via <see cref="XPathNavigator.UnderlyingObject"/>,
+    /// available because <see cref="Parse"/> uses an <see cref="XmlDocument"/>). Without this,
+    /// computing a path for N matched nodes that are all (or mostly) siblings under one parent —
+    /// e.g. 1000 matches out of 100k "&lt;item&gt;" children — means each match independently
+    /// walks back through its own preceding siblings to count them, which is O(matches × siblings)
+    /// and measurably quadratic (~1s for 1000 matches among 100k siblings in a scratch benchmark).
+    /// Instead, the first lookup under a given parent does one O(children) forward pass indexing
+    /// every element child at once; every subsequent lookup under that same parent is O(1).
+    /// Total cost across a whole query is therefore bounded by the number of children of each
+    /// distinct parent actually touched, summed once each — never squared.</summary>
+    private sealed class SiblingIndexCache
+    {
+        private readonly Dictionary<XmlNode, int> _index = new();
+        private readonly HashSet<XmlNode> _indexedParents = new();
+
+        public int GetIndex(XPathNavigator node, string name)
+        {
+            if (node.UnderlyingObject is not XmlNode xmlNode)
+                return FallbackIndex(node, name); // defensive: shouldn't happen for XmlDocument-backed navigators
+
+            var parent = xmlNode.ParentNode;
+            if (parent is null)
+                return 1;
+
+            if (_indexedParents.Add(parent))
+            {
+                var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (XmlNode child in parent.ChildNodes)
+                {
+                    if (child.NodeType != XmlNodeType.Element)
+                        continue;
+                    var childName = QualifiedName(child);
+                    var count = counts.TryGetValue(childName, out var c) ? c + 1 : 1;
+                    counts[childName] = count;
+                    _index[child] = count;
+                }
+            }
+
+            return _index.TryGetValue(xmlNode, out var index) ? index : 1;
+        }
+
+        /// <summary>Original O(siblings) backward-count, kept only as a safety net for navigator
+        /// implementations that don't expose <see cref="XPathNavigator.UnderlyingObject"/>.</summary>
+        private static int FallbackIndex(XPathNavigator node, string name)
+        {
+            var index = 1;
+            var sibling = node.Clone();
+            while (sibling.MoveToPrevious())
+            {
+                if (sibling.NodeType == XPathNodeType.Element && QualifiedName(sibling) == name)
+                    index++;
+            }
+            return index;
+        }
+    }
 }

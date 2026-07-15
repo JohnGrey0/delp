@@ -166,4 +166,23 @@ public class XPathToolTests
         var result = XPathTool.Evaluate(Store, "//book[2]/title");
         Assert.Equal("/store[1]/book[2]/title[1]", result.Matches[0].Path);
     }
+
+    [Fact]
+    public void Evaluate_ManySiblings_ComputesCorrectIndicesNearTheTail()
+    {
+        // Path computation memoizes each element's sibling index per parent (see
+        // XPathTool.SiblingIndexCache) instead of re-walking preceding siblings for every match,
+        // which would be quadratic. This exercises the worst case for that memoization — a large
+        // flat sibling list with the matched (and therefore cached) subset concentrated at the
+        // tail — and asserts the computed indices are still exactly right, not just fast.
+        var items = string.Concat(Enumerable.Range(0, 5000).Select(i => $"<item>{i}</item>"));
+        var xml = $"<root>{items}</root>";
+
+        var result = XPathTool.Evaluate(xml, "//item[position() > 4990]");
+
+        Assert.Equal(10, result.Count);
+        Assert.False(result.Truncated);
+        for (var i = 0; i < 10; i++)
+            Assert.Equal($"/root[1]/item[{4991 + i}]", result.Matches[i].Path);
+    }
 }

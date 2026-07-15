@@ -166,8 +166,10 @@ public partial class JsonPathView : UserControl
         {
             if (requestId != _xpathRequestId)
                 return;
-            _xpathMatches = [];
-            XPathResultsList.ItemsSource = null;
+            // Same convention as Base64View.Run / the JSONPath tab's Run() above: leave the last
+            // successful results in place on error (don't clear _xpathMatches/ItemsSource) — only
+            // the error line updates. Otherwise every transient invalid state while live-typing an
+            // expression (e.g. an unclosed "[") would blank the results list.
             ShowStatus(XPathStatusText, ex.Message, "Brush.Danger");
         }
     }
