@@ -22,7 +22,9 @@
             </StackPanel>
             <StackPanel Margin="0,0,14,8">
                 <TextBlock Style="{StaticResource Text.Section}" Text="SCALE" Margin="0,0,0,4" />
-                <ComboBox x:Name="ScaleCombo" MinWidth="60" SelectionChanged="Combo_Changed">
+                <!-- Export-only: the live preview always rasterizes at 1x (see CodeShotView.Render),
+                     so this has nothing to redraw and isn't wired to the debounce. -->
+                <ComboBox x:Name="ScaleCombo" MinWidth="60">
                     <ComboBoxItem Content="1×" Tag="1" IsSelected="True" />
                     <ComboBoxItem Content="2×" Tag="2" />
                 </ComboBox>

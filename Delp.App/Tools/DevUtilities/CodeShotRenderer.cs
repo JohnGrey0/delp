@@ -45,6 +45,30 @@ public static class CodeShotRenderer
 
     private const double CardRadius = 14;
 
+    // AvalonEdit's bundled highlighting definitions assume a light editor background.
+    // A handful of named colors are near-black (contrast ratio ~1.0-1.4, i.e. almost
+    // the same luminance as the text underneath it) and are effectively invisible on
+    // code-shot's dark card themes -- verified by rendering "12345" and watching the
+    // digits disappear against a dark card. These replacements (all >5:1 contrast
+    // against every dark theme's CardBg) are applied only while rendering a dark
+    // theme, and only reach editors whose language actually defines that named color.
+    private static readonly (string Name, Color Color)[] DarkCardColorOverrides =
+    [
+        ("NumberLiteral", Color.FromRgb(0xB5, 0xCE, 0xA8)),
+        ("MethodCall", Color.FromRgb(0xDC, 0xDC, 0xAA)),
+        ("StringInterpolation", Color.FromRgb(0xCE, 0x91, 0x78)),
+        ("GotoKeywords", Color.FromRgb(0x56, 0x9C, 0xD6)),
+        ("ContextKeywords", Color.FromRgb(0x56, 0x9C, 0xD6)),
+    ];
+
+    // AvalonEdit's TextEditor never becomes collectible once discarded -- verified by
+    // constructing and dropping 60 offscreen editors (highlighted, measured/arranged,
+    // rasterized, then dereferenced): all 60 were still reachable after a forced GC,
+    // ~3 MB each. The live preview re-renders on every debounced keystroke, so a fresh
+    // TextEditor per call leaks unboundedly over an editing session. Reusing a single
+    // cached instance (same test, same 60 renders) keeps growth to ~50 KB total.
+    private static TextEditor? _cachedEditor;
+
     /// <exception cref="FormatException">The code exceeds the line/char cap.</exception>
     public static void Validate(string code)
     {
@@ -74,7 +98,11 @@ public static class CodeShotRenderer
     {
         Validate(options.Code);
 
-        var root = BuildVisual(options);
+        var highlighting = options.Language.Equals("Plain", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : HighlightingManager.Instance.GetDefinition(options.Language);
+
+        var root = BuildVisual(options, highlighting);
         root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         root.Arrange(new Rect(root.DesiredSize));
 
@@ -84,9 +112,52 @@ public static class CodeShotRenderer
         var pixelHeight = Math.Max(1, (int)Math.Ceiling(root.DesiredSize.Height * scale));
 
         var bitmap = new RenderTargetBitmap(pixelWidth, pixelHeight, dpi, dpi, PixelFormats.Pbgra32);
-        bitmap.Render(root);
+
+        // The override table mutates AvalonEdit's shared, app-wide HighlightingManager
+        // singleton (the same HighlightingColor objects the rule engine paints with),
+        // so it must be reverted immediately after this render -- never left changed
+        // for whatever renders next.
+        var restore = ApplyDarkCardColorOverrides(highlighting, options.Theme.IsLight);
+        try
+        {
+            bitmap.Render(root);
+        }
+        finally
+        {
+            RevertColorOverrides(restore);
+        }
+
         bitmap.Freeze();
         return bitmap;
+    }
+
+    private static List<(HighlightingColor Color, HighlightingBrush? Original)>? ApplyDarkCardColorOverrides(
+        IHighlightingDefinition? highlighting, bool isLightTheme)
+    {
+        if (highlighting is null || isLightTheme)
+            return null;
+
+        List<(HighlightingColor, HighlightingBrush?)>? saved = null;
+        foreach (var (name, color) in DarkCardColorOverrides)
+        {
+            var namedColor = highlighting.GetNamedColor(name);
+            if (namedColor is null)
+                continue;
+
+            saved ??= [];
+            saved.Add((namedColor, namedColor.Foreground));
+            namedColor.Foreground = new SimpleHighlightingBrush(color);
+        }
+        return saved;
+    }
+
+    private static void RevertColorOverrides(List<(HighlightingColor Color, HighlightingBrush? Original)>? saved)
+    {
+        if (saved is null)
+            return;
+
+        foreach (var (namedColor, original) in saved)
+            namedColor.Foreground = original;
     }
 
     public static byte[] ToPngBytes(BitmapSource bitmap)
@@ -98,7 +169,7 @@ public static class CodeShotRenderer
         return stream.ToArray();
     }
 
-    private static Border BuildVisual(CodeShotOptions options)
+    private static Border BuildVisual(CodeShotOptions options, IHighlightingDefinition? highlighting)
     {
         var theme = options.Theme;
         var padding = options.Padding switch
@@ -108,29 +179,13 @@ public static class CodeShotRenderer
             _ => 48,
         };
 
-        var editor = new TextEditor
-        {
-            Text = options.Code,
-            IsReadOnly = true,
-            ShowLineNumbers = options.ShowLineNumbers,
-            WordWrap = false,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            FontFamily = new FontFamily("Cascadia Mono, Cascadia Code, Consolas"),
-            FontSize = 14,
-            Background = Brushes.Transparent,
-            Foreground = new SolidColorBrush(ParseColor(theme.DefaultFg)),
-            LineNumbersForeground = new SolidColorBrush(ParseColor(theme.LineNumberFg)),
-            Padding = new Thickness(22, 18, 26, 20),
-            MinWidth = 220,
-        };
-        editor.Options.EnableHyperlinks = false;
-        editor.Options.EnableEmailHyperlinks = false;
-        editor.Options.ShowTabs = false;
-        editor.Options.ShowSpaces = false;
-        editor.SyntaxHighlighting = options.Language.Equals("Plain", StringComparison.OrdinalIgnoreCase)
-            ? null
-            : HighlightingManager.Instance.GetDefinition(options.Language);
+        var editor = GetOrCreateEditor();
+        editor.Text = options.Code;
+        editor.ShowLineNumbers = options.ShowLineNumbers;
+        editor.Foreground = new SolidColorBrush(ParseColor(theme.DefaultFg));
+        editor.LineNumbersForeground = new SolidColorBrush(ParseColor(theme.LineNumberFg));
+        editor.Padding = new Thickness(22, 18, 26, 20);
+        editor.SyntaxHighlighting = highlighting;
 
         var body = new StackPanel { Orientation = Orientation.Vertical };
         if (options.ShowChrome)
@@ -162,6 +217,39 @@ public static class CodeShotRenderer
             Padding = new Thickness(padding),
             Child = card,
         };
+    }
+
+    /// <summary>
+    /// Returns the cached offscreen editor, detaching it from whatever card it was
+    /// last rendered into (a WPF element can only ever have one logical parent).
+    /// See the leak note on <see cref="_cachedEditor"/> for why this is cached at all.
+    /// </summary>
+    private static TextEditor GetOrCreateEditor()
+    {
+        if (_cachedEditor is { } existing)
+        {
+            (existing.Parent as Panel)?.Children.Remove(existing);
+            return existing;
+        }
+
+        var editor = new TextEditor
+        {
+            IsReadOnly = true,
+            WordWrap = false,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            FontFamily = new FontFamily("Cascadia Mono, Cascadia Code, Consolas"),
+            FontSize = 14,
+            Background = Brushes.Transparent,
+            MinWidth = 220,
+        };
+        editor.Options.EnableHyperlinks = false;
+        editor.Options.EnableEmailHyperlinks = false;
+        editor.Options.ShowTabs = false;
+        editor.Options.ShowSpaces = false;
+
+        _cachedEditor = editor;
+        return editor;
     }
 
     private static UIElement BuildChromeBar(CodeShotTheme theme, string? title)
