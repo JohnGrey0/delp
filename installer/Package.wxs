@@ -49,7 +49,7 @@
       <Shortcut Id="DelpStartMenuShortcut"
                 Directory="ProgramMenuFolder"
                 Name="Delp"
-                Description="Developer toolbox â€” 75 tools in your tray"
+                Description="Developer toolbox — 50 tools in your tray"
                 Target="[INSTALLFOLDER]delp.exe"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon="DelpIcon" />
