@@ -79,4 +79,47 @@ public class ShellTokenizerTests
         Assert.Equal(["foobar"], ShellTokenizer.Tokenize("foo'bar'"));
         Assert.Equal(["foobar"], ShellTokenizer.Tokenize("'foo'bar"));
     }
+
+    [Fact]
+    public void Tokenize_AnsiCQuoting_DecodesCommonBackslashEscapes()
+    {
+        var tokens = ShellTokenizer.Tokenize(@"-H $'X-Name: line1\nline2\ttabbed'");
+        Assert.Equal(["-H", "X-Name: line1\nline2\ttabbed"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_AnsiCQuoting_DecodesHexEscape()
+    {
+        var tokens = ShellTokenizer.Tokenize(@"$'\x41\x42'");
+        Assert.Equal(["AB"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_AnsiCQuoting_UnknownEscape_PassesThroughLiterally()
+    {
+        // Never corrupt silently in a way that drops information — an escape this tokenizer
+        // doesn't know keeps both the backslash and the character.
+        var tokens = ShellTokenizer.Tokenize(@"$'\q'");
+        Assert.Equal(["\\q"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_AnsiCQuoting_EscapedSingleQuoteDoesNotEndTheString()
+    {
+        var tokens = ShellTokenizer.Tokenize(@"$'it\'s here' rest");
+        Assert.Equal(["it's here", "rest"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_AnsiCQuoting_Unterminated_DoesNotThrow_RunsToEndOfInput()
+    {
+        var tokens = ShellTokenizer.Tokenize(@"$'unterminated\n");
+        Assert.Equal(["unterminated\n"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_DollarNotFollowedByQuote_IsOrdinaryCharacter()
+    {
+        Assert.Equal(["$VAR", "$(cmd)"], ShellTokenizer.Tokenize("$VAR $(cmd)"));
+    }
 }

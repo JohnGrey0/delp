@@ -216,4 +216,105 @@ public class CurlToolTests
         var r = CurlTool.Parse("curl -d '{\"a\":1}' https://example.com");
         Assert.Equal(CurlBodyKind.Raw, r.BodyKind);
     }
+
+    // ---- adversarial: generated code must stay inert data, never break into live source ----
+
+    [Fact]
+    public void Generate_PowerShell_BodyContainingHereStringTerminator_CannotBreakOutOfString()
+    {
+        // A body containing a line that is exactly "'@" used to prematurely close the here-string
+        // (@'...'@) this generator used to emit, turning everything after it into live PowerShell
+        // script that runs the moment the generated file is dot-sourced or executed.
+        var maliciousBody = "line1\n'@\nInvoke-Expression \"calc\"\n";
+        var r = new CurlRequest("POST", "https://example.com", [], [], CurlBodyKind.Raw, maliciousBody,
+            [], null, false, false, false, []);
+
+        var code = CurlTool.Generate(r, CurlTarget.PowerShell);
+
+        Assert.DoesNotContain("@'", code);
+        Assert.Contains("Body = \"line1\n'@\nInvoke-Expression `\"calc`\"\n\"", code);
+    }
+
+    [Fact]
+    public void Generate_PowerShell_JsonBodyContainingHereStringTerminator_CannotBreakOutOfString()
+    {
+        var maliciousBody = "{}\n'@\nRemove-Item C:\\ -Recurse -Force\n";
+        var r = new CurlRequest("POST", "https://example.com", [], [], CurlBodyKind.Json, maliciousBody,
+            [], null, false, false, false, []);
+
+        var code = CurlTool.Generate(r, CurlTarget.PowerShell);
+
+        Assert.DoesNotContain("@'", code);
+        Assert.Contains("Body = \"{}\n'@\nRemove-Item C:\\ -Recurse -Force\n\"", code);
+    }
+
+    [Fact]
+    public void Generate_JavaScript_JsonBody_InvalidJsonIsNeverEvaluatedAsCode()
+    {
+        // --json content that doesn't parse as JSON used to be spliced straight into
+        // `JSON.stringify(<here>)` as a raw, unquoted JS expression — a body of
+        // "(fetch('https://evil'),{})" would execute fetch() the moment the generated file runs.
+        var r = CurlTool.Parse("curl --json \"(fetch('https://evil.example'),{})\" https://example.com");
+        Assert.Equal(CurlBodyKind.Json, r.BodyKind);
+
+        var code = CurlTool.Generate(r, CurlTarget.JavaScript);
+
+        Assert.DoesNotContain("JSON.stringify(", code);
+        Assert.Contains("body: `(fetch('https://evil.example'),{})`,", code);
+    }
+
+    [Fact]
+    public void Generate_Python_RawBodyContainingTripleQuote_CannotBreakOutOfString()
+    {
+        var maliciousBody = "x\"\"\"\nimport os\nos.system(\"calc\")\n#";
+        var r = new CurlRequest("POST", "https://example.com", [], [], CurlBodyKind.Raw, maliciousBody,
+            [], null, false, false, false, []);
+
+        var code = CurlTool.Generate(r, CurlTarget.Python);
+
+        Assert.DoesNotContain("r\"\"\"", code);
+        Assert.Contains("data = \"x\\\"\\\"\\\"\\nimport os\\nos.system(\\\"calc\\\")\\n#\"", code);
+    }
+
+    [Fact]
+    public void Generate_Python_JsonBody_ValidJson_StaysReadableTripleQuoted()
+    {
+        // The safe single-line fallback must only kick in when it's actually needed — ordinary
+        // valid JSON should still come out pretty-printed and readable.
+        var r = CurlTool.Parse("curl --json '{\"a\":1,\"nested\":{\"b\":2}}' https://example.com");
+        var code = CurlTool.Generate(r, CurlTarget.Python);
+        Assert.Contains("json.loads(r\"\"\"", code);
+        Assert.Contains("\"nested\"", code);
+    }
+
+    [Theory]
+    [InlineData(CurlTarget.CSharp)]
+    [InlineData(CurlTarget.Python)]
+    [InlineData(CurlTarget.JavaScript)]
+    [InlineData(CurlTarget.Go)]
+    public void Generate_UrlContainingEmbeddedNewline_EscapesRatherThanBreakingTheStringLiteral(CurlTarget target)
+    {
+        // A raw newline inside what generators embed as a single-line quoted string (URL, header
+        // name/value, ...) must be escaped to \n — left raw, it prematurely ends the literal and
+        // whatever follows becomes separate top-level source text in the generated file.
+        var r = new CurlRequest("GET", "https://example.com/a\nDROP_TABLE_OR_WHATEVER();//",
+            [], [], CurlBodyKind.None, null, [], null, false, false, false, []);
+
+        var code = CurlTool.Generate(r, target);
+
+        Assert.DoesNotContain("a\nDROP_TABLE_OR_WHATEVER", code);
+        Assert.Contains("a\\nDROP_TABLE_OR_WHATEVER", code);
+    }
+
+    [Fact]
+    public void Generate_PowerShell_UrlContainingEmbeddedNewline_StaysInsideOneQuotedValue()
+    {
+        // PowerShell double-quoted strings legitimately allow embedded raw newlines, so no
+        // escaping is needed there — just confirm it doesn't corrupt the $params block structure.
+        var r = new CurlRequest("GET", "https://example.com/a\nb", [], [], CurlBodyKind.None, null,
+            [], null, false, false, false, []);
+
+        var code = CurlTool.Generate(r, CurlTarget.PowerShell);
+        Assert.Contains("Uri    = \"https://example.com/a\nb\"", code);
+    }
 }

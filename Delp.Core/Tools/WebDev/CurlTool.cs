@@ -530,7 +530,7 @@ public static class CurlTool
         switch (r.BodyKind)
         {
             case CurlBodyKind.Json:
-                sb.AppendLine($"payload = json.loads(r\"\"\"{r.Body}\"\"\")");
+                sb.AppendLine($"payload = json.loads({PythonBodyLiteral(r.Body ?? "")})");
                 break;
             case CurlBodyKind.UrlEncodedForm:
                 sb.AppendLine("data = {");
@@ -539,7 +539,7 @@ public static class CurlTool
                 sb.AppendLine("}");
                 break;
             case CurlBodyKind.Raw:
-                sb.AppendLine($"data = r\"\"\"{r.Body}\"\"\"");
+                sb.AppendLine($"data = {PythonBodyLiteral(r.Body ?? "")}");
                 break;
             case CurlBodyKind.Multipart:
                 sb.AppendLine("files = {");
@@ -601,7 +601,13 @@ public static class CurlTool
         switch (r.BodyKind)
         {
             case CurlBodyKind.Json:
-                sb.AppendLine($"  body: JSON.stringify({r.Body ?? "{}"}),");
+                // The pretty-printed JSON text was spliced in here unescaped, as a raw JS
+                // expression, in a previous version of this generator — anything that failed to
+                // parse as JSON (so came through as the user's literal --json text) became live,
+                // executable JavaScript in the output file. curl sends this text verbatim as the
+                // body anyway, so there's no need to round-trip it through JSON.stringify(); embed
+                // it as an escaped template literal instead, exactly like the Raw body case below.
+                sb.AppendLine($"  body: {JsTemplateLiteral(r.Body ?? "{}")},");
                 break;
             case CurlBodyKind.UrlEncodedForm:
                 sb.AppendLine("  body: new URLSearchParams({");
@@ -655,7 +661,12 @@ public static class CurlTool
         switch (r.BodyKind)
         {
             case CurlBodyKind.Json:
-                sb.Append("    Body = @'\n").Append(r.Body).AppendLine("\n'@");
+                // A here-string (@'...'@) would be nicer to read, but its closing marker is just
+                // "'@" at the start of a line — a body that happens to contain that sequence (e.g.
+                // an --json argument that wasn't actually valid JSON) would prematurely close it and
+                // turn the rest of the body into live PowerShell script. An escaped double-quoted
+                // string can't be broken out of that way and still allows embedded newlines.
+                sb.AppendLine($"    Body = \"{EscapePs(r.Body ?? "")}\"");
                 sb.AppendLine("    ContentType = \"application/json\"");
                 break;
             case CurlBodyKind.UrlEncodedForm:
@@ -665,7 +676,7 @@ public static class CurlTool
                 sb.AppendLine("    }");
                 break;
             case CurlBodyKind.Raw:
-                sb.Append("    Body = @'\n").Append(r.Body).AppendLine("\n'@");
+                sb.AppendLine($"    Body = \"{EscapePs(r.Body ?? "")}\"");
                 break;
             case CurlBodyKind.Multipart:
                 sb.AppendLine("    Form = @{");
@@ -756,21 +767,45 @@ public static class CurlTool
     }
 
     // ---- per-language escaping ----
+    //
+    // Every one of these produces a *single-line* quoted literal, so a raw, un-escaped '\r' or
+    // '\n' in the source value is just as dangerous as an un-escaped quote: the target language's
+    // string terminates at end-of-line whether we meant it to or not, and whatever text follows
+    // becomes live source code the next time this file is compiled or run. Escaping control
+    // characters here isn't optional polish — it's what keeps a curl command with an embedded
+    // newline (trivially pasted, not even deliberately adversarial) from producing code that
+    // executes attacker-controlled statements instead of merely failing to compile.
 
-    private static string EscapeCSharp(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string EscapeCSharp(string s) => s
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"")
+        .Replace("\r", "\\r")
+        .Replace("\n", "\\n");
 
     private static string EscapeVerbatim(string s) => s.Replace("\"", "\"\"");
 
-    private static string EscapePython(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string EscapePython(string s) => s
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"")
+        .Replace("\r", "\\r")
+        .Replace("\n", "\\n");
 
-    private static string EscapeJs(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string EscapeJs(string s) => s
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"")
+        .Replace("\r", "\\r")
+        .Replace("\n", "\\n");
 
     private static string JsTemplateLiteral(string s) =>
         "`" + s.Replace("\\", "\\\\").Replace("`", "\\`").Replace("${", "\\${") + "`";
 
     private static string EscapePs(string s) => s.Replace("`", "``").Replace("\"", "`\"").Replace("$", "`$");
 
-    private static string GoQuoteSafe(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string GoQuoteSafe(string s) => s
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"")
+        .Replace("\r", "\\r")
+        .Replace("\n", "\\n");
 
     /// <summary>Go raw string literals (backticks) can't contain a backtick; fall back to an
     /// interpreted string when the payload has one.</summary>
@@ -778,6 +813,29 @@ public static class CurlTool
     {
         if (!s.Contains('`'))
             return "`" + s + "`";
-        return "\"" + GoQuoteSafe(s).Replace("\n", "\\n").Replace("\r", "") + "\"";
+        return "\"" + GoQuoteSafe(s) + "\"";
+    }
+
+    /// <summary>Python raw triple-quoted strings keep a pretty-printed JSON/text body readable
+    /// (real newlines and indentation instead of a wall of "\n" escapes), but they terminate on
+    /// the first literal <c>"""</c> regardless of what produced it — including a --json argument
+    /// that wasn't actually JSON, or a raw -d payload chosen specifically to contain that
+    /// sequence. A raw string also can't end in an odd number of backslashes (the backslash
+    /// "escapes" the following quote for termination purposes even though it stays in the
+    /// result), which would likewise let content after it leak out of the literal. Fall back to a
+    /// fully escaped single-line string whenever either hazard is present.</summary>
+    private static string PythonBodyLiteral(string s)
+    {
+        if (!s.Contains("\"\"\"") && !HasOddTrailingBackslashes(s))
+            return "r\"\"\"" + s + "\"\"\"";
+        return "\"" + EscapePython(s) + "\"";
+    }
+
+    private static bool HasOddTrailingBackslashes(string s)
+    {
+        var count = 0;
+        for (var i = s.Length - 1; i >= 0 && s[i] == '\\'; i--)
+            count++;
+        return count % 2 == 1;
     }
 }

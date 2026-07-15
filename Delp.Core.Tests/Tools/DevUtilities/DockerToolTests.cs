@@ -198,6 +198,42 @@ public class DockerToolTests
     }
 
     [Fact]
+    public void RunToCompose_EnvValueShapedLikeYamlInjection_StaysASingleScalarNotANewKey()
+    {
+        // A value containing an embedded newline followed by "key: value" is the classic
+        // YAML block-scalar injection shape — if it were spliced into the document as raw text
+        // instead of going through the real YAML serializer, it would add a second, attacker-
+        // controlled top-level key rather than staying part of this one environment entry.
+        var yaml = DockerTool.RunToCompose("docker run -e \"FOO=bar\ninjected: true\" myimage");
+
+        Assert.DoesNotContain("\ninjected: true\n", yaml);
+
+        // Round-tripping back to `docker run` must recover exactly one -e flag holding the
+        // whole value, not a separate `injected` variable.
+        var runLine = DockerTool.ComposeToRun(yaml, multiline: false);
+        Assert.Equal(1, runLine.Split(["-e "], StringSplitOptions.None).Length - 1);
+        Assert.Contains("injected: true", runLine);
+    }
+
+    [Fact]
+    public void ComposeToRun_EnvValueWithShellMetacharacters_IsSingleQuoted()
+    {
+        // $(...) / backticks / embedded quotes in a Compose env value must come out inside a
+        // single-quoted docker run argument so the shell never expands or executes them.
+        const string yaml = """
+            services:
+              app:
+                image: myimage
+                environment:
+                  GREETING: "hello $(rm -rf /) 'world' \"x\""
+            """;
+
+        var result = DockerTool.ComposeToRun(yaml, multiline: false);
+
+        Assert.Contains("-e 'GREETING=hello $(rm -rf /) '\\''world'\\'' \"x\"'", result);
+    }
+
+    [Fact]
     public void RoundTrip_ComposeToRunToCompose_PreservesHealthcheck()
     {
         const string yaml = """
