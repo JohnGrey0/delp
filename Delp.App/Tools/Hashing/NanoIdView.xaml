@@ -1,46 +1,178 @@
 <UserControl x:Class="Delp.App.Tools.Hashing.NanoIdView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="View_Loaded">
     <DockPanel Margin="16">
+        <TabControl>
 
-        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-            <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
-                <TextBlock Text="Size" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
-                <TextBox x:Name="SizeBox" Width="60" Text="21" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
-                <TextBlock Text="Count" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
-                <TextBox x:Name="CountBox" Width="60" Text="5" />
-            </StackPanel>
-            <Button x:Name="GenerateBtn" Content="Generate" Style="{StaticResource Button.Primary}" Click="Generate_Click" Margin="0,0,0,10" />
-        </WrapPanel>
+            <TabItem Header="GENERATE">
+                <DockPanel Margin="0,10,0,0">
 
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-            <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" Text="Alphabet" />
-            <TextBox x:Name="AlphabetBox" />
-        </DockPanel>
-        <TextBlock DockPanel.Dock="Top"
-                   Margin="0,0,0,12"
-                   Style="{StaticResource Text.Sub}"
-                   Text="Leave blank for the default 64-character A-Za-z0-9_- alphabet." />
+                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
+                            <TextBlock Text="Kind" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <ComboBox x:Name="KindCombo" Width="160" SelectionChanged="Kind_Changed">
+                                <ComboBoxItem Content="Nano ID" IsSelected="True" />
+                                <ComboBoxItem Content="ULID" />
+                                <ComboBoxItem Content="Snowflake" />
+                                <ComboBoxItem Content="MongoDB ObjectId" />
+                            </ComboBox>
+                        </StackPanel>
 
-        <TextBlock x:Name="ErrorText"
-                   DockPanel.Dock="Bottom"
-                   Margin="0,8,0,0"
-                   Style="{StaticResource Text.Error}"
-                   Visibility="Collapsed" />
+                        <StackPanel x:Name="SizePanel" Orientation="Horizontal" Margin="0,0,16,10">
+                            <TextBlock Text="Size" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="SizeBox" Width="60" Text="21" />
+                        </StackPanel>
 
-        <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-                <TextBlock x:Name="CollisionNote" Style="{StaticResource Text.Sub}" />
-            </StackPanel>
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                <Button x:Name="CopyBtn" DockPanel.Dock="Right" Content="Copy" Click="Copy_Click" />
-                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
-            </DockPanel>
-            <TextBox x:Name="OutputBox"
-                     Style="{StaticResource TextBox.Mono}"
-                     IsReadOnly="True" />
-        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
+                            <TextBlock Text="Count" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="CountBox" Width="60" Text="5" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="EpochPanel" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                            <TextBlock Text="Epoch" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <ComboBox x:Name="EpochCombo" Width="120" SelectionChanged="Epoch_Changed">
+                                <ComboBoxItem Content="Twitter" IsSelected="True" />
+                                <ComboBoxItem Content="Discord" />
+                                <ComboBoxItem Content="Custom (ms)" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel x:Name="CustomEpochPanel" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                            <TextBlock Text="Custom epoch (ms)" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="CustomEpochBox" Width="130" Text="0" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="WorkerPanel" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                            <TextBlock Text="Worker (0-31)" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="WorkerBox" Width="50" Text="1" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="ProcessPanel" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                            <TextBlock Text="Process (0-31)" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="ProcessBox" Width="50" Text="0" />
+                        </StackPanel>
+
+                        <Button x:Name="GenerateBtn" Content="Generate" Style="{StaticResource Button.Primary}" Click="Generate_Click" Margin="0,0,0,10" />
+                    </WrapPanel>
+
+                    <DockPanel x:Name="AlphabetRow" DockPanel.Dock="Top" Margin="0,0,0,4">
+                        <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" Text="Alphabet" />
+                        <TextBox x:Name="AlphabetBox" />
+                    </DockPanel>
+                    <TextBlock x:Name="AlphabetNote"
+                               DockPanel.Dock="Top"
+                               Margin="0,0,0,12"
+                               Style="{StaticResource Text.Sub}"
+                               Text="Leave blank for the default 64-character A-Za-z0-9_- alphabet." />
+
+                    <TextBlock x:Name="KindDescription"
+                               DockPanel.Dock="Top"
+                               Margin="0,0,0,12"
+                               Style="{StaticResource Text.Sub}" />
+
+                    <TextBlock x:Name="ErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                            <TextBlock x:Name="CollisionNote" Style="{StaticResource Text.Sub}" />
+                        </StackPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <Button x:Name="CopyBtn" DockPanel.Dock="Right" Content="Copy" Click="Copy_Click" />
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
+                        </DockPanel>
+                        <TextBox x:Name="OutputBox"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 IsReadOnly="True"
+                                 MinHeight="80" />
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="DECODE">
+                <DockPanel Margin="0,10,0,0">
+
+                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,10">
+                            <TextBlock Text="Snowflake epoch" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <ComboBox x:Name="DecodeEpochCombo" Width="120" SelectionChanged="DecodeEpoch_Changed">
+                                <ComboBoxItem Content="Twitter" IsSelected="True" />
+                                <ComboBoxItem Content="Discord" />
+                                <ComboBoxItem Content="Custom (ms)" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel x:Name="DecodeCustomEpochPanel" Orientation="Horizontal" Margin="0,0,16,10" Visibility="Collapsed">
+                            <TextBlock Text="Custom epoch (ms)" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Sub}" />
+                            <TextBox x:Name="DecodeCustomEpochBox" Width="130" Text="0" TextChanged="DecodeInput_Changed" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <TextBlock x:Name="DecodeErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="1.4*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="IDS — ONE PER LINE" />
+                        <TextBox x:Name="DecodeInputBox"
+                                 Grid.Row="1"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="NoWrap"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Auto"
+                                 MinHeight="70"
+                                 TextChanged="DecodeInput_Changed"
+                                 Text="01AN4Z07BY79KA1307SR9X4MV3&#10;507f1f77bcf86cd799439011&#10;175928847299117063" />
+
+                        <TextBlock Grid.Row="2" Margin="0,14,0,6" Style="{StaticResource Text.Section}" Text="RESULTS" />
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="DecodeResultsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="12">
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right"
+                                                               VerticalAlignment="Center"
+                                                               Style="{StaticResource Text.Section}"
+                                                               Text="{Binding TypeLabel}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Style="{StaticResource Text.Mono}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding Input}" />
+                                                </DockPanel>
+                                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Sub}" Text="{Binding TimestampText}" />
+                                                <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding FieldLines}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Style="{StaticResource Text.Sub}" Text="{Binding}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+
+        </TabControl>
     </DockPanel>
 </UserControl>
