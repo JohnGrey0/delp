@@ -10,8 +10,8 @@ using Delp.Core.Tools.TextProcessing;
 namespace Delp.App.Tools.TextProcessing;
 
 [Tool("regex-test", "Regex Tester", ToolCategory.TextProcessing,
-    "Test .NET regular expressions against sample text with live match highlighting and replace.",
-    Keywords = "regex,regexp,pattern,match,test,replace", Order = 20)]
+    "Test .NET regular expressions against sample text with live match highlighting, replace, and a searchable pattern library.",
+    Keywords = "regex,regexp,pattern,match,test,replace,patterns,library,cheatsheet,common,regex-library", Order = 20)]
 public partial class RegexTestView : UserControl
 {
     private const int MaxInputLength = 1_000_000; // ~1 MB of chars, per the perf note in the spec
@@ -32,6 +32,12 @@ public partial class RegexTestView : UserControl
         };
 
         Run(Render);
+
+        LibraryList.ItemsSource = RegexLibrary.All;
+        if (LibraryList.Items.Count > 0)
+            LibraryList.SelectedIndex = 0;
+        else
+            LibraryDetailPanel.Visibility = Visibility.Collapsed;
     }
 
     private void Input_Changed(object sender, RoutedEventArgs e)
@@ -189,6 +195,66 @@ public partial class RegexTestView : UserControl
 
     private void CopyReplace_Click(object sender, RoutedEventArgs e) =>
         Ui.Copy(ReplaceResultBox.Text, CopyReplaceBtn);
+
+    private void LibrarySearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var selected = LibraryList.SelectedItem as RegexEntry;
+        LibraryList.ItemsSource = RegexLibrary.Search(LibrarySearchBox.Text);
+
+        if (selected != null && ((IEnumerable<RegexEntry>)LibraryList.ItemsSource).Contains(selected))
+            LibraryList.SelectedItem = selected;
+        else if (LibraryList.Items.Count > 0)
+            LibraryList.SelectedIndex = 0;
+        else
+            ShowLibraryEntry(null);
+    }
+
+    private void LibraryList_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        ShowLibraryEntry(LibraryList.SelectedItem as RegexEntry);
+
+    private void ShowLibraryEntry(RegexEntry? entry)
+    {
+        if (entry is null)
+        {
+            LibraryDetailPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        LibraryDetailPanel.Visibility = Visibility.Visible;
+        LibraryDetailName.Text = entry.Name;
+        LibraryDetailDescription.Text = entry.Description;
+        LibraryPatternBox.Text = entry.Pattern;
+        LibraryExampleBox.Text = entry.Example;
+
+        var result = RegexTool.Run(entry.Pattern, entry.Example, new RegexToolOptions());
+        if (result.Error != null)
+        {
+            LibraryMatchStatusText.Text = "✗ " + result.Error;
+            LibraryMatchStatusText.Foreground = (Brush)FindResource("Brush.Danger");
+        }
+        else if (result.Matches.Count > 0)
+        {
+            LibraryMatchStatusText.Text = "✓ matches its example";
+            LibraryMatchStatusText.Foreground = (Brush)FindResource("Brush.Success");
+        }
+        else
+        {
+            LibraryMatchStatusText.Text = "✗ does not match its example";
+            LibraryMatchStatusText.Foreground = (Brush)FindResource("Brush.Danger");
+        }
+    }
+
+    private void CopyLibraryPattern_Click(object sender, RoutedEventArgs e) =>
+        Ui.Copy(LibraryPatternBox.Text, CopyLibraryPatternBtn);
+
+    private void UsePattern_Click(object sender, RoutedEventArgs e)
+    {
+        if (LibraryList.SelectedItem is not RegexEntry entry)
+            return;
+
+        PatternBox.Text = entry.Pattern;
+        MainTabs.SelectedIndex = 0;
+    }
 
     /// <summary>Runs a render pass with reentrancy protection and inline error reporting.</summary>
     private void Run(Action render)

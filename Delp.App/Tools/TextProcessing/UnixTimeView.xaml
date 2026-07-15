@@ -4,6 +4,9 @@
              Loaded="UnixTimeView_Loaded"
              Unloaded="UnixTimeView_Unloaded">
     <DockPanel Margin="16">
+        <TabControl>
+            <TabItem Header="CONVERT">
+                <DockPanel Margin="0,10,0,0">
 
         <TextBlock x:Name="ErrorText"
                    DockPanel.Dock="Bottom"
@@ -82,5 +85,63 @@
                 </Grid>
             </StackPanel>
         </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="BATCH">
+                <DockPanel Margin="0,10,0,0">
+
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <TextBlock VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   Style="{StaticResource Text.Section}"
+                                   Text="UNIT" />
+                        <ComboBox x:Name="BatchUnitBox" Width="90" HorizontalAlignment="Left" SelectionChanged="BatchOption_Changed" />
+                    </DockPanel>
+
+                    <TextBlock x:Name="BatchStatusText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Sub}" />
+
+                    <TextBlock x:Name="BatchErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,4,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="1.4*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource Text.Section}" Text="INPUT (one timestamp per line)" />
+                        <TextBox x:Name="BatchInputBox"
+                                 Grid.Row="1"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 MinHeight="64"
+                                 TextChanged="BatchInputBox_TextChanged" />
+
+                        <DockPanel Grid.Row="2" Margin="0,14,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button x:Name="BatchCopyCsvBtn" Content="Copy CSV" Margin="6,0,0,0" Click="BatchCopyCsv_Click" />
+                                <Button x:Name="BatchCopyTableBtn" Content="Copy table" Margin="6,0,0,0" Click="BatchCopyTable_Click" />
+                            </StackPanel>
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="OUTPUT" />
+                        </DockPanel>
+                        <TextBox x:Name="BatchOutputBox"
+                                 Grid.Row="3"
+                                 Style="{StaticResource TextBox.Mono}"
+                                 MinHeight="80"
+                                 IsReadOnly="True"
+                                 TextWrapping="NoWrap"
+                                 HorizontalScrollBarVisibility="Auto" />
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </UserControl>

@@ -8,8 +8,8 @@ using Delp.Core.Tools.TextProcessing;
 namespace Delp.App.Tools.TextProcessing;
 
 [Tool("unix-time", "Unix Timestamp ↔ Date", ToolCategory.TextProcessing,
-    "Convert Unix timestamps to dates and back, with a live ticking clock.",
-    Keywords = "unix,epoch,timestamp,date,utc", Order = 100)]
+    "Convert Unix timestamps to dates and back, with a live ticking clock and batch conversion of pasted timestamp lists.",
+    Keywords = "unix,epoch,timestamp,date,utc,batch,timestamps,convert,logs,epoch-batch", Order = 100)]
 public partial class UnixTimeView : UserControl
 {
     private static readonly string[] DateFormats =
@@ -17,16 +17,31 @@ public partial class UnixTimeView : UserControl
         "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm", "yyyy-MM-dd",
     ];
 
+    private static readonly EpochUnit?[] BatchUnits = [null, EpochUnit.Seconds, EpochUnit.Millis, EpochUnit.Micros];
+
     private bool _updating;
     private DispatcherTimer? _timer;
     private long _nowSeconds;
     private long _nowMillis;
+
+    private IReadOnlyList<EpochRow> _batchRows = [];
+    private readonly DispatcherTimer _batchDebounceTimer;
 
     public UnixTimeView()
     {
         InitializeComponent();
         UnitBox.ItemsSource = new[] { "Auto", "s", "ms", "µs" };
         UnitBox.SelectedIndex = 0;
+
+        BatchUnitBox.ItemsSource = new[] { "Auto", "s", "ms", "µs" };
+        BatchUnitBox.SelectedIndex = 0;
+
+        _batchDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _batchDebounceTimer.Tick += (_, _) =>
+        {
+            _batchDebounceTimer.Stop();
+            RefreshBatch();
+        };
 
         UpdateNow();
     }
@@ -147,6 +162,44 @@ public partial class UnixTimeView : UserControl
 
     private void CopyDateSeconds_Click(object sender, RoutedEventArgs e) => Ui.Copy(DateSecondsText.Text, CopyDateSecondsBtn);
     private void CopyDateMillis_Click(object sender, RoutedEventArgs e) => Ui.Copy(DateMillisText.Text, CopyDateMillisBtn);
+
+    // Conversion cost scales with the number of pasted lines (a whole log file's worth),
+    // so debounce rather than re-converting on every keystroke.
+    private void BatchInputBox_TextChanged(object sender, TextChangedEventArgs e) => DebounceBatch();
+
+    private void BatchOption_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoaded)
+            DebounceBatch();
+    }
+
+    private void DebounceBatch()
+    {
+        _batchDebounceTimer.Stop();
+        _batchDebounceTimer.Start();
+    }
+
+    private void RefreshBatch()
+    {
+        try
+        {
+            var unit = BatchUnits[Math.Max(BatchUnitBox.SelectedIndex, 0)];
+            _batchRows = EpochBatchTool.Convert(BatchInputBox.Text, unit);
+            BatchOutputBox.Text = EpochBatchTool.ToTable(_batchRows);
+
+            var errors = _batchRows.Count(r => r.Error is not null);
+            BatchStatusText.Text = $"{_batchRows.Count - errors} converted, {errors} error{(errors == 1 ? "" : "s")}";
+            BatchErrorText.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            BatchErrorText.Text = ex.Message;
+            BatchErrorText.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void BatchCopyTable_Click(object sender, RoutedEventArgs e) => Ui.Copy(EpochBatchTool.ToTable(_batchRows), BatchCopyTableBtn);
+    private void BatchCopyCsv_Click(object sender, RoutedEventArgs e) => Ui.Copy(EpochBatchTool.ToCsv(_batchRows), BatchCopyCsvBtn);
 
     /// <summary>Runs a conversion with reentrancy protection and inline error reporting.</summary>
     private void Run(Action convert)

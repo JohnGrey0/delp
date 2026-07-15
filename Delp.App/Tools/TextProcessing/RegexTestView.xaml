@@ -31,7 +31,7 @@
                    Style="{StaticResource Text.Error}"
                    Visibility="Collapsed" />
 
-        <TabControl>
+        <TabControl x:Name="MainTabs">
             <TabItem Header="MATCH">
                 <DockPanel Margin="0,10,0,0">
                     <StackPanel DockPanel.Dock="Top">
@@ -77,6 +77,70 @@
                     <TextBox x:Name="ReplaceResultBox"
                              Style="{StaticResource TextBox.Mono}"
                              IsReadOnly="True" />
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="LIBRARY">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBox x:Name="LibrarySearchBox"
+                             DockPanel.Dock="Top"
+                             Style="{StaticResource TextBox.Search}"
+                             Tag="Search patterns…"
+                             Margin="0,0,0,12"
+                             TextChanged="LibrarySearchBox_TextChanged" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- No outer ScrollViewer around this ListBox — the app's smoke lint
+                             flags that as a mouse-wheel trap; ScrollViewer.VerticalScrollBarVisibility
+                             below is an attached property that just enables the ListBox's own
+                             built-in (virtualized) scrolling. -->
+                        <ListBox x:Name="LibraryList"
+                                 Grid.Column="0"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 SelectionChanged="LibraryList_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock FontSize="13" Text="{Binding Name}" TextWrapping="Wrap" />
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{StaticResource Brush.Fg2}"
+                                                   Text="{Binding Category}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="LibraryDetailPanel">
+                                <TextBlock x:Name="LibraryDetailName" Style="{StaticResource Text.Title}" FontSize="16" TextWrapping="Wrap" />
+                                <TextBlock x:Name="LibraryDetailDescription" Style="{StaticResource Text.Sub}" Margin="0,4,0,0" />
+
+                                <Button x:Name="UsePatternBtn"
+                                        Style="{StaticResource Button.Primary}"
+                                        Content="Use pattern"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,12,0,0"
+                                        Click="UsePattern_Click" />
+
+                                <TextBlock Text="PATTERN" Style="{StaticResource Text.Section}" Margin="0,16,0,4" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" x:Name="CopyLibraryPatternBtn" Content="Copy" Click="CopyLibraryPattern_Click" />
+                                    <TextBox x:Name="LibraryPatternBox" Style="{StaticResource TextBox.Mono}" MinHeight="0" IsReadOnly="True" Margin="0,0,8,0" />
+                                </DockPanel>
+
+                                <TextBlock Text="EXAMPLE" Style="{StaticResource Text.Section}" Margin="0,14,0,4" />
+                                <TextBox x:Name="LibraryExampleBox" Style="{StaticResource TextBox.Mono}" MinHeight="0" IsReadOnly="True" />
+
+                                <TextBlock x:Name="LibraryMatchStatusText" Margin="0,8,0,0" FontSize="12" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </DockPanel>
             </TabItem>
         </TabControl>
