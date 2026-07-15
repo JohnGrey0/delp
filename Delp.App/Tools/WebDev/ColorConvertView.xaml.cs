@@ -1,25 +1,32 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.WebDev;
 
 namespace Delp.App.Tools.WebDev;
 
-[Tool("color-convert", "Color Converter", ToolCategory.WebDev,
-    "Convert colors between hex, RGB, HSL, and HSB, with a live swatch and contrast check.",
-    Keywords = "color,hex,rgb,hsl,hsb,hsv,css", Order = 10)]
+[Tool("color-convert", "Color Converter & Picker", ToolCategory.WebDev,
+    "Convert colors between hex, RGB, HSL, and HSB, or pick one straight off the screen with an eyedropper.",
+    Keywords = "color,hex,rgb,hsl,hsb,hsv,css,eyedropper,picker,screen,blotter,pixel,color-blotter", Order = 10)]
 public partial class ColorConvertView : UserControl
 {
+    private const int MaxHistory = 24;
+
     private static readonly ParsedColor White = new(255, 255, 255, 255);
     private static readonly ParsedColor Black = new(0, 0, 0, 255);
+
+    private readonly ObservableCollection<HistoryEntry> _history = [];
 
     private bool _updating;
 
     public ColorConvertView()
     {
         InitializeComponent();
+        HistoryStrip.ItemsSource = _history;
         Run(ApplyFromInput);
     }
 
@@ -84,6 +91,42 @@ public partial class ColorConvertView : UserControl
     private void CopyHsl_Click(object sender, RoutedEventArgs e) => Ui.Copy(HslBox.Text, CopyHslBtn);
     private void CopyHsb_Click(object sender, RoutedEventArgs e) => Ui.Copy(HsbBox.Text, CopyHsbBtn);
 
+    /// <summary>
+    /// Runs the eyedropper overlay (owned by this tool since the color-blotter merge) and, on a
+    /// successful pick, feeds the sampled color into the converter input via the normal
+    /// InputBox_TextChanged → Run(ApplyFromInput) path, so the reentrancy guard still applies.
+    /// </summary>
+    private void PickButton_Click(object sender, RoutedEventArgs e)
+    {
+        var overlay = new ColorPickerOverlayWindow { Owner = Window.GetWindow(this) };
+        overlay.ShowDialog();
+        if (overlay.Picked)
+            RecordPick(overlay.PickedR, overlay.PickedG, overlay.PickedB);
+    }
+
+    /// <summary>Adds a fresh screen pick to the session history and loads it into the converter.</summary>
+    private void RecordPick(byte r, byte g, byte b)
+    {
+        var hex = ColorTool.ToHex(new ParsedColor(r, g, b, 255), alpha: false);
+
+        var entry = new HistoryEntry(r, g, b, hex);
+        if (_history.Count == 0 || _history[0].Hex != entry.Hex)
+        {
+            _history.Insert(0, entry);
+            while (_history.Count > MaxHistory)
+                _history.RemoveAt(_history.Count - 1);
+        }
+
+        InputBox.Text = hex;
+    }
+
+    /// <summary>Clicking a history swatch re-feeds the converter without adding a duplicate entry.</summary>
+    private void HistorySwatch_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: HistoryEntry entry })
+            InputBox.Text = entry.Hex;
+    }
+
     /// <summary>Runs a conversion with reentrancy protection and inline error reporting.</summary>
     private void Run(Action convert)
     {
@@ -104,5 +147,10 @@ public partial class ColorConvertView : UserControl
         {
             _updating = false;
         }
+    }
+
+    private sealed record HistoryEntry(byte R, byte G, byte B, string Hex)
+    {
+        public Brush SwatchBrush { get; } = new SolidColorBrush(Color.FromRgb(R, G, B));
     }
 }
