@@ -1,0 +1,163 @@
+<UserControl x:Class="Delp.App.Tools.WebDev.ImageConvertView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!-- Exemption to the theme-only-colors rule: this checkerboard represents the image's own
+             transparency (like any photo editor's canvas), not app chrome, so it needs real
+             light/dark squares rather than the dark-glass palette. -->
+        <DrawingBrush x:Key="Checkerboard"
+                      Viewport="0,0,16,16"
+                      ViewportUnits="Absolute"
+                      TileMode="Tile">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#FF3A3A3E">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,16,16" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#FF4C4C52">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="0,0,8,8" />
+                                <RectangleGeometry Rect="8,8,8,8" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+    </UserControl.Resources>
+
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+
+                <Border x:Name="DropCard"
+                        Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,0,10"
+                        AllowDrop="True"
+                        PreviewDragOver="DropCard_PreviewDragOver"
+                        Drop="DropCard_Drop">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource Text.Sub}"
+                                   HorizontalAlignment="Center"
+                                   Text="Drop an image here, or" />
+                        <Button x:Name="BrowseBtn"
+                                Content="Browse…"
+                                HorizontalAlignment="Center"
+                                Margin="0,8,0,0"
+                                Click="Browse_Click" />
+                    </StackPanel>
+                </Border>
+                <TextBlock Style="{StaticResource Text.Sub}"
+                           Margin="0,0,0,14"
+                           Text="Reads PNG, JPEG, BMP, GIF, TIFF, and ICO; WebP/HEIC decode too when the matching Windows codec is installed." />
+
+                <Border Style="{StaticResource Card.Editor}" MinHeight="200" Margin="0,0,0,14">
+                    <Grid Background="{StaticResource Checkerboard}">
+                        <Image x:Name="PreviewImage" Stretch="Uniform" Margin="4" MaxHeight="300" />
+                        <TextBlock x:Name="PreviewHintText"
+                                   Style="{StaticResource Text.Sub}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="No image loaded" />
+                    </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="INFO" Margin="0,0,0,6" />
+                <ItemsControl x:Name="InfoList" Margin="0,0,0,4">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource Text.Sub}" Text="{Binding Label}" />
+                                <TextBlock Grid.Column="1"
+                                           Style="{StaticResource Text.Mono}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Value}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <CheckBox x:Name="StripMetadataBox"
+                          Content="Strip metadata on save"
+                          Margin="0,4,0,16" />
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="FORMAT" Margin="0,0,0,6" />
+                <WrapPanel Margin="0,0,0,14">
+                    <ComboBox x:Name="FormatBox"
+                              Width="110"
+                              Margin="0,0,10,6"
+                              SelectionChanged="Format_Changed">
+                        <ComboBoxItem Content="PNG" IsSelected="True" />
+                        <ComboBoxItem Content="JPEG" />
+                        <ComboBoxItem Content="BMP" />
+                        <ComboBoxItem Content="GIF" />
+                        <ComboBoxItem Content="TIFF" />
+                    </ComboBox>
+                    <StackPanel x:Name="QualityPanel"
+                                Orientation="Horizontal"
+                                Visibility="Collapsed"
+                                Margin="0,0,0,6">
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="QUALITY" Margin="0,0,8,0" />
+                        <TextBox x:Name="QualityBox" Width="50" Text="90" />
+                    </StackPanel>
+                </WrapPanel>
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="RESIZE" Margin="0,0,0,6" />
+                <WrapPanel Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,6">
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="W" Margin="0,0,6,0" />
+                        <TextBox x:Name="ResizeWidthBox" Width="64" TextChanged="ResizeWidthBox_TextChanged" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,6">
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="H" Margin="0,0,6,0" />
+                        <TextBox x:Name="ResizeHeightBox" Width="64" TextChanged="ResizeHeightBox_TextChanged" />
+                    </StackPanel>
+                    <CheckBox x:Name="LockAspectBox" Content="Lock aspect" IsChecked="True" Margin="0,0,10,6" />
+                    <ComboBox x:Name="PercentPresetBox"
+                              Width="100"
+                              Margin="0,0,10,6"
+                              SelectionChanged="PercentPreset_Changed">
+                        <ComboBoxItem Content="Preset %…" IsSelected="True" />
+                        <ComboBoxItem Content="25%" />
+                        <ComboBoxItem Content="50%" />
+                        <ComboBoxItem Content="75%" />
+                        <ComboBoxItem Content="150%" />
+                        <ComboBoxItem Content="200%" />
+                    </ComboBox>
+                    <Button x:Name="ApplyResizeBtn" Content="Apply resize" Margin="0,0,0,6" Click="ApplyResize_Click" />
+                </WrapPanel>
+
+                <TextBlock Style="{StaticResource Text.Section}" Text="ROTATE / FLIP" Margin="0,0,0,6" />
+                <WrapPanel Margin="0,0,0,16">
+                    <Button x:Name="RotateLeftBtn" Style="{StaticResource Button.Icon}" Content="⟲ 90°" ToolTip="Rotate left" Margin="0,0,6,6" Click="RotateLeft_Click" />
+                    <Button x:Name="RotateRightBtn" Style="{StaticResource Button.Icon}" Content="⟳ 90°" ToolTip="Rotate right" Margin="0,0,6,6" Click="RotateRight_Click" />
+                    <Button x:Name="Rotate180Btn" Style="{StaticResource Button.Icon}" Content="↻ 180°" ToolTip="Rotate 180°" Margin="0,0,6,6" Click="Rotate180_Click" />
+                    <Button x:Name="FlipHBtn" Style="{StaticResource Button.Icon}" Content="⇋ Flip H" ToolTip="Flip horizontal" Margin="0,0,6,6" Click="FlipH_Click" />
+                    <Button x:Name="FlipVBtn" Style="{StaticResource Button.Icon}" Content="⇅ Flip V" ToolTip="Flip vertical" Margin="0,0,0,6" Click="FlipV_Click" />
+                </WrapPanel>
+
+                <WrapPanel Margin="0,0,0,6">
+                    <Button x:Name="SaveAsBtn" Style="{StaticResource Button.Primary}" Content="Save as…" Margin="0,0,10,6" Click="SaveAs_Click" />
+                    <Button x:Name="ExportFaviconBtn" Content="Export favicon (.ico)" Margin="0,0,0,6" Click="ExportFavicon_Click" />
+                </WrapPanel>
+                <TextBlock x:Name="SizeChangeText" Style="{StaticResource Text.Sub}" Margin="0,4,0,0" />
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
