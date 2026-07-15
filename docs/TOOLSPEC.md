@@ -1156,3 +1156,90 @@ OUTPUT readonly mono + Copy; status "12 items". Live update.
 (O'Brien through SqlIn, a quoted word through PythonList/JsonArray); CSV
 field with comma/newline; delimiter mode; dedupe+lowercase interplay; strip
 punctuation; empty input → empty container per format (e.g. `[]`).
+
+---
+
+## Batch P — Consolidation (75 tools → 50)
+
+Design decision: many tools share one mental model and differ only by a
+parameter (version, language, direction, dataset). Each merge below collapses
+sibling tools into ONE view with a selector, preserving EVERY capability.
+
+GROUND RULES for all merges:
+- **Views only.** Core classes, their APIs, and all existing Core tests stay
+  untouched. The merged view dispatches to the same Core code the absorbed
+  views used.
+- The merged tool keeps ONE [Tool] registration (id given below). Absorbed
+  views' .xaml/.xaml.cs files are DELETED. The merged tool's Keywords MUST
+  include the absorbed tools' names/ids/keywords so search still finds
+  "uuid v7", "yaml formatter", "port lookup", etc.
+- Selector state adapts the options row (Visibility switching, not rebuild).
+  Switching selection re-runs conversion on current input where live.
+- All prior UI affordances survive: copy buttons, notes, badges, error rows,
+  decode sections, drag-drop, debounces, Task.Run, IsLoaded guards.
+- `dotnet build` 0 warnings, `dotnet test` green, and `delp.exe --smoke`
+  0 failures (it UX-lints every view) are the exit gate.
+
+### P1: uuid — UUID Generator · Hashing · 110 · absorbs uuid-v1..uuid-v8
+Version ComboBox (v1 Time-based, v2 DCE Security, v3 MD5 Name-based,
+v4 Random, v5 SHA-1 Name-based, v6 Sortable time, v7 Unix epoch, v8 Custom);
+default v4. Shared row: count/uppercase/braces/no-hyphens + Generate +
+output/copy/JSON-array (reuse UuidViewSupport). Per-version option panels
+(collapsed unless selected): v1/v6 real-MAC checkbox + timestamp note;
+v2 domain+local-id + its identity note; v3/v5 namespace combo + name box
+(live, no count/Generate — hide batch row); v7 decode box; v8 custom hex +
+random-fill. Per-version description line under the combo.
+
+### P2: format — Formatter & Validator · DataFormat · 10 · absorbs json-format, yaml-format, xml-format, sql-format, graphql-format
+Language ComboBox (JSON, YAML, XML, SQL, GraphQL). Shared INPUT/OUTPUT
+editors (Json syntax highlighting only when JSON), Format/Minify buttons
+(Minify hidden for YAML), live-validate status line with line:col. Adaptive
+options: JSON → indent/sort-keys/escape-non-ascii; YAML → indent + comments
+note; XML → indent/omit-declaration; SQL → uppercase-keywords/indent;
+GraphQL → none.
+
+### P3: convert-data — Data Converter · DataFormat · 20 · absorbs json-yaml, xml-json, csv-json, toml-parse
+FROM and TO ComboBoxes over {JSON, YAML, XML, CSV, TOML}; supported pairs =
+exactly the unions the absorbed tools implemented (JSON⇄YAML, JSON⇄XML,
+JSON⇄CSV, JSON⇄TOML); selecting an unsupported pair snaps TO to JSON with a
+note. Two editors, live-debounced both directions where bidirectional.
+Adaptive options: XML root-name box (JSON→XML), CSV delimiter/header/infer
+row, TOML/YAML notes. A ⇄ swap button flips FROM/TO with contents.
+
+### P4a: minify — Minifier / Beautifier · WebDev · 20 · absorbs css-minify, js-minify, html-minify
+Language ComboBox (CSS, JavaScript, HTML). Minify always; Beautify visible
+for CSS only; HTML options (comments/whitespace) visible for HTML only;
+JS modern-syntax note visible for JS only. Shared before→after savings
+status and error list (reuse MinifierUi).
+
+### P4b: string-escape — Escape / Encode · TextProcessing · 70 · absorbs url-encode, html-entities, unicode-escape
+Existing target combo GROWS: JSON, XML/HTML, HTML Entities (full
+WebUtility + numeric-format option), CSV, C#, JavaScript, SQL, Regex,
+URL — Component / URL — Form data / URL — Preserve URI chars, Unicode
+escapes (non-ASCII-only option). Bidirectional panes as today; per-target
+option checkboxes appear contextually. Base64 and binary-hex stay separate
+tools (different mental model: binary data, not escaping).
+
+### P5a: regex-test — Regex Tester · TextProcessing · 20 · absorbs regex-library
+Adds third tab LIBRARY: the existing master-detail browser plus a
+"Use pattern" button that copies the entry's pattern into the PATTERN box
+and switches to the TEST tab.
+
+### P5b: unix-time — Timestamp Converter · TextProcessing · 100 · absorbs epoch-batch
+Tabs: CONVERT (existing single view incl. NOW ticker) | BATCH (existing
+epoch-batch UI verbatim).
+
+### P5c: reference — Reference Lookup · DevUtilities · 60 · absorbs http-status, mime-lookup, port-lookup
+Tabs: HTTP STATUS | MIME TYPES | PORTS — each tab hosts the existing tool's
+UI unchanged (search boxes stay per-tab).
+
+### P6a: color-convert — Color Converter & Picker · WebDev · 10 · absorbs color-blotter
+Adds "Pick from screen" Button.Primary + the overlay flow + the session
+history strip (compact horizontal row of swatches under the converter);
+picking or clicking history feeds the converter input. ScreenColorTool and
+the overlay Window move file-wise into this tool's ownership unchanged.
+
+### P6b: hash-generator — Hash Generator & Checksum · Hashing · 10 · absorbs file-checksum
+Adds an EXPECTED row under the digest rows: paste any expected hash →
+auto-detects which algorithm row it matches (by length + comparison, using
+ChecksumTool.Verify) and shows the ✓/✗ badge beside that row.
