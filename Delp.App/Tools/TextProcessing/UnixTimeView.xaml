@@ -3,6 +3,90 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Loaded="UnixTimeView_Loaded"
              Unloaded="UnixTimeView_Unloaded">
+    <UserControl.Resources>
+        <!-- Editable variant of the theme's ComboBox: same chrome, but the item-display
+             ContentPresenter is swapped for a PART_EditableTextBox so the zone pickers below
+             support free typing (WPF wires Text sync to a part with that exact name). Local to
+             this view only — the shared theme's ComboBox style is untouched. -->
+        <Style x:Key="ComboBox.Editable" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="IsEditable" Value="True" />
+            <Setter Property="IsTextSearchEnabled" Value="False" />
+            <Setter Property="StaysOpenOnEdit" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6" />
+                            <ToggleButton Background="Transparent"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <TextBox x:Name="PART_EditableTextBox"
+                                     Margin="{TemplateBinding Padding}"
+                                     Padding="0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="{TemplateBinding Foreground}"
+                                     FontSize="{TemplateBinding FontSize}"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Stretch"
+                                     Focusable="True" />
+                            <Path Data="M0,0 L4.5,4.5 L9,0"
+                                  Margin="0,1,12,0"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  Stroke="{StaticResource Brush.Fg1}"
+                                  StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  IsHitTestVisible="False" />
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,4,12,12"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        Background="{StaticResource Brush.PopupBg}"
+                                        BorderBrush="{StaticResource Brush.BorderStrong}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="0,4">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.45" />
+                                    </Border.Effect>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="220">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.BorderStrong}" />
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
     <DockPanel Margin="16">
         <TabControl>
             <TabItem Header="CONVERT">
@@ -43,7 +127,7 @@
                 <!-- EPOCH -> DATE -->
                 <TextBlock Style="{StaticResource Text.Section}" Text="EPOCH → DATE" Margin="0,0,0,6" />
                 <DockPanel Margin="0,0,0,6">
-                    <ComboBox x:Name="UnitBox" DockPanel.Dock="Right" Width="90" SelectionChanged="EpochUnit_Changed" />
+                    <ComboBox x:Name="UnitBox" DockPanel.Dock="Right" Width="150" SelectionChanged="EpochUnit_Changed" />
                     <TextBox x:Name="EpochInputBox" Margin="0,0,10,0" TextChanged="EpochInputBox_TextChanged" />
                 </DockPanel>
                 <TextBlock x:Name="DetectedUnitText" Style="{StaticResource Text.Sub}" Margin="0,0,0,10" />
@@ -57,7 +141,45 @@
                         <TextBlock Style="{StaticResource Text.Sub}" Text="RFC 1123" />
                         <TextBlock x:Name="Rfc1123Text" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" TextWrapping="Wrap" />
                         <TextBlock Style="{StaticResource Text.Sub}" Text="Relative" />
-                        <TextBlock x:Name="RelativeText" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="RelativeText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Style="{StaticResource Text.Sub}" Text="Epoch" />
+                        <Grid Margin="0,0,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="EpochSecondsOutText" Style="{StaticResource Text.Mono}" VerticalAlignment="Center" />
+                            <Button x:Name="CopyEpochSecondsOutBtn" Grid.Column="1" Content="Copy s" Click="CopyEpochSecondsOut_Click" />
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="EpochMillisOutText" Style="{StaticResource Text.Mono}" VerticalAlignment="Center" />
+                            <Button x:Name="CopyEpochMillisOutBtn" Grid.Column="1" Content="Copy ms" Click="CopyEpochMillisOut_Click" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource Text.Sub}" Text="FILETIME / LDAP (100 ns since 1601)" />
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="FileTimeOutText" Style="{StaticResource Text.Mono}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button x:Name="CopyFileTimeOutBtn" Grid.Column="1" Content="Copy" Click="CopyFileTimeOut_Click" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource Text.Sub}" Text=".NET ticks (100 ns since 0001-01-01)" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="TicksOutText" Style="{StaticResource Text.Mono}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button x:Name="CopyTicksOutBtn" Grid.Column="1" Content="Copy" Click="CopyTicksOut_Click" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 
@@ -85,6 +207,132 @@
                 </Grid>
             </StackPanel>
         </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="ZONES">
+                <DockPanel Margin="0,10,0,0">
+
+                    <TextBlock x:Name="ZonesErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Style="{StaticResource Text.Section}" Text="DATE/TIME" Margin="0,0,0,6" />
+                        <DockPanel Margin="0,0,0,4">
+                            <ComboBox x:Name="SourceZoneBox"
+                                      DockPanel.Dock="Right"
+                                      Width="210"
+                                      Style="{StaticResource ComboBox.Editable}"
+                                      SelectionChanged="SourceZoneBox_SelectionChanged" />
+                            <TextBox x:Name="ZonesDateInputBox" Margin="0,0,10,0" TextChanged="ZonesDateInputBox_TextChanged" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Text.Sub}" Text="Blank = now. No offset in the text → interpreted in the zone on the right (type to filter)." TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Style="{StaticResource Text.Section}" Text="ADD A ZONE" Margin="0,0,0,6" />
+                        <ComboBox x:Name="AddZoneBox"
+                                  Width="260"
+                                  HorizontalAlignment="Left"
+                                  Style="{StaticResource ComboBox.Editable}"
+                                  SelectionChanged="AddZoneBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="ZoneRowsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right"
+                                                               Text="DST"
+                                                               VerticalAlignment="Center"
+                                                               Margin="8,0,0,0"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource Brush.Warning}"
+                                                               Visibility="{Binding IsDst, Converter={StaticResource BoolToVis}}" />
+                                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding LocalTimeText}" Style="{StaticResource Text.Mono}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding OffsetText}" Style="{StaticResource Text.Sub}" Margin="0,2,0,0" />
+                                            </StackPanel>
+
+                                            <Button Grid.Column="1"
+                                                    Content="✕"
+                                                    Style="{StaticResource Button.Icon}"
+                                                    VerticalAlignment="Top"
+                                                    Click="RemoveZone_Click" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="DELTA">
+                <DockPanel Margin="0,10,0,0">
+
+                    <TextBlock x:Name="DeltaErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Text.Section}" Text="FROM (BLANK = NOW)" Margin="0,0,0,6" />
+                            <TextBox x:Name="DeltaFromBox" Margin="0,0,0,10" TextChanged="DeltaBox_TextChanged" />
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="TO (BLANK = NOW)" Margin="0,0,0,6" />
+                            <TextBox x:Name="DeltaToBox" Margin="0,0,0,14" TextChanged="DeltaBox_TextChanged" />
+
+                            <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Duration" />
+                                    <TextBlock x:Name="DeltaHumanText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Total days" />
+                                    <TextBlock x:Name="DeltaDaysText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Total hours" />
+                                    <TextBlock x:Name="DeltaHoursText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Total minutes" />
+                                    <TextBlock x:Name="DeltaMinutesText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Total seconds" />
+                                    <TextBlock x:Name="DeltaSecondsText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="ISO 8601 duration" />
+                                    <TextBlock x:Name="DeltaIsoText" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="DATE MATH" Margin="0,0,0,6" />
+                            <WrapPanel Margin="0,0,0,10">
+                                <TextBlock Text="Base (blank = now)" VerticalAlignment="Center" Margin="0,0,8,6" Style="{StaticResource Text.Sub}" />
+                                <TextBox x:Name="MathBaseBox" Width="180" Margin="0,0,10,6" TextChanged="MathBox_TextChanged" />
+                                <TextBox x:Name="MathAmountBox" Width="64" Margin="0,0,8,6" Text="1" TextChanged="MathBox_TextChanged" />
+                                <ComboBox x:Name="MathUnitBox" Width="110" Margin="0,0,0,6" SelectionChanged="MathUnit_Changed" />
+                            </WrapPanel>
+                            <Border Style="{StaticResource Card}" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Result (local)" />
+                                    <TextBlock x:Name="MathResultLocalText" Style="{StaticResource Text.Mono}" Margin="0,0,0,8" TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource Text.Sub}" Text="Result (UTC)" />
+                                    <TextBlock x:Name="MathResultUtcText" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
                 </DockPanel>
             </TabItem>
 
