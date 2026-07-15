@@ -1,22 +1,51 @@
-<UserControl x:Class="Delp.App.Tools.WebDev.HtmlMinifyView"
+<UserControl x:Class="Delp.App.Tools.WebDev.MinifyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
 
-        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock VerticalAlignment="Center"
+                       Margin="0,0,10,0"
+                       Style="{StaticResource Text.Section}"
+                       Text="LANGUAGE" />
+            <ComboBox x:Name="LanguageBox"
+                      Width="140"
+                      HorizontalAlignment="Left"
+                      SelectionChanged="LanguageBox_SelectionChanged" />
+        </DockPanel>
+
+        <WrapPanel x:Name="HtmlOptionsPanel"
+                   DockPanel.Dock="Top"
+                   Margin="0,0,0,10"
+                   Visibility="Collapsed">
             <CheckBox x:Name="RemoveCommentsBox"
-                      Margin="0,0,16,8"
+                      Margin="0,0,16,4"
                       Content="Remove comments"
                       IsChecked="True" />
             <CheckBox x:Name="CollapseWhitespaceBox"
-                      Margin="0,0,16,8"
+                      Margin="0,0,16,4"
                       Content="Collapse whitespace"
                       IsChecked="True" />
+        </WrapPanel>
+
+        <TextBlock x:Name="JsNoteText"
+                   DockPanel.Dock="Top"
+                   Margin="0,0,0,10"
+                   Style="{StaticResource Text.Sub}"
+                   Text="Classic minifier — very new syntax (e.g. class fields, ??=) may be unsupported."
+                   Visibility="Collapsed" />
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
             <Button x:Name="MinifyBtn"
                     Margin="0,0,8,8"
                     Click="Minify_Click"
                     Content="Minify"
                     Style="{StaticResource Button.Primary}" />
+            <Button x:Name="BeautifyBtn"
+                    Margin="0,0,8,8"
+                    Click="Beautify_Click"
+                    Content="Beautify"
+                    Visibility="Collapsed" />
         </WrapPanel>
 
         <TextBlock x:Name="StatusText"

@@ -3,16 +3,37 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
 
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
             <TextBlock VerticalAlignment="Center"
                        Margin="0,0,10,0"
                        Style="{StaticResource Text.Section}"
                        Text="TARGET" />
             <ComboBox x:Name="TargetBox"
-                      Width="170"
+                      Width="220"
                       HorizontalAlignment="Left"
                       SelectionChanged="TargetBox_SelectionChanged" />
         </DockPanel>
+
+        <WrapPanel x:Name="HtmlEntitiesOptions"
+                   DockPanel.Dock="Top"
+                   Margin="0,0,0,10"
+                   Visibility="Collapsed">
+            <CheckBox x:Name="NumericEntitiesBox"
+                      Content="Encode non-ASCII as numeric entities"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+        </WrapPanel>
+
+        <WrapPanel x:Name="UnicodeOptions"
+                   DockPanel.Dock="Top"
+                   Margin="0,0,0,10"
+                   Visibility="Collapsed">
+            <CheckBox x:Name="NonAsciiOnlyBox"
+                      Content="Escape non-ASCII only"
+                      IsChecked="True"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+        </WrapPanel>
 
         <TextBlock x:Name="ErrorText"
                    DockPanel.Dock="Bottom"
