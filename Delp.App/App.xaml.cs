@@ -130,9 +130,18 @@ public partial class App : Application
                 var lint = new List<string>();
                 LintVisualTree(view, lint);
 
+                // WPF realizes only the selected TabItem's content, so the lint
+                // above never sees non-default tabs. Cycle every tab of every
+                // TabControl (selecting one forces its content to load) and
+                // re-lint the freshly realized subtree — otherwise wheel-traps
+                // and clipping on secondary tabs ship unseen.
+                LintAllTabs(view, lint);
+
                 view.Measure(new Size(400, 5000));
                 if (view.DesiredSize.Width > 402)
                     lint.Add($"overflows flyout width (needs {view.DesiredSize.Width:0} px at 400 px)");
+
+                lint = lint.Distinct().ToList();
 
                 if (lint.Count > 0)
                 {
@@ -210,6 +219,58 @@ public partial class App : Application
 
             Shutdown(0);
         });
+    }
+
+    /// <summary>
+    /// Finds every TabControl in a laid-out view and cycles through its tabs,
+    /// selecting each so WPF realizes that tab's content, then re-lints the
+    /// newly built subtree. Restores each control's original selection when
+    /// done. This is what lets the smoke test see clipping/wheel-traps that
+    /// live on any tab other than the default-selected one.
+    /// </summary>
+    private static void LintAllTabs(DependencyObject root, List<string> lint)
+    {
+        var tabControls = new List<System.Windows.Controls.TabControl>();
+        CollectTabControls(root, tabControls);
+
+        foreach (var tabs in tabControls)
+        {
+            if (tabs.Items.Count <= 1)
+                continue;
+
+            var original = tabs.SelectedIndex;
+            for (var i = 0; i < tabs.Items.Count; i++)
+            {
+                tabs.SelectedIndex = i;
+                // Force the ContentPresenter to realize the newly selected tab.
+                tabs.UpdateLayout();
+                tabs.Measure(new Size(800, 600));
+                tabs.Arrange(new Rect(0, 0, 800, 600));
+                tabs.UpdateLayout();
+
+                var header = (tabs.Items[i] as System.Windows.Controls.TabItem)?.Header?.ToString()
+                             ?? $"#{i}";
+                var tabLint = new List<string>();
+                if (tabs.SelectedContent is DependencyObject content)
+                    LintVisualTree(content, tabLint);
+
+                foreach (var issue in tabLint)
+                    lint.Add($"[tab '{header}'] {issue}");
+            }
+            tabs.SelectedIndex = original;
+            tabs.UpdateLayout();
+        }
+    }
+
+    private static void CollectTabControls(DependencyObject root, List<System.Windows.Controls.TabControl> found)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is System.Windows.Controls.TabControl tabs)
+                found.Add(tabs);
+            CollectTabControls(child, found);
+        }
     }
 
     /// <summary>

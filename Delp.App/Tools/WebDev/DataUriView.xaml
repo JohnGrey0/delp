@@ -104,7 +104,7 @@
                     <TextBox x:Name="DecodeInputBox"
                              DockPanel.Dock="Top"
                              Style="{StaticResource TextBox.Mono}"
-                             Height="90"
+                             MinHeight="90"
                              Margin="0,0,0,10"
                              TextChanged="DecodeInput_Changed" />
 
