@@ -11,7 +11,9 @@ namespace Delp.App.Tools.WebDev;
 /// Full-virtual-screen, click-through-proof transparent overlay used to
 /// sample a pixel color from anywhere on any monitor. This is the one place
 /// this tool needs a bespoke <see cref="Window"/> instead of a UserControl,
-/// as explicitly allowed for color-blotter.
+/// as explicitly allowed for the screen picker. Owned by color-convert
+/// (formerly the standalone color-blotter tool, absorbed via "Pick from
+/// screen" in the P6a consolidation).
 ///
 /// Left-click captures the color under the cursor and closes; Esc cancels.
 /// Sampling is throttled with a ~30 ms timer rather than raw MouseMove

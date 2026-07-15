@@ -12,6 +12,17 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
 
+                <StackPanel Margin="0,0,0,16">
+                    <Button x:Name="PickButton"
+                            Style="{StaticResource Button.Primary}"
+                            HorizontalAlignment="Left"
+                            Content="Pick from screen"
+                            Click="PickButton_Click" />
+                    <TextBlock Margin="0,8,0,0"
+                               Style="{StaticResource Text.Sub}"
+                               Text="Multi-monitor supported. Esc cancels picking." />
+                </StackPanel>
+
                 <TextBlock Margin="0,0,0,6"
                            Style="{StaticResource Text.Section}"
                            Text="COLOR (#hex, rgb(), hsl(), hsb()/hsv())" />
@@ -71,6 +82,31 @@
                 <TextBox x:Name="HsbBox" Margin="0,0,0,14" FontFamily="{StaticResource Font.Mono}" IsReadOnly="True" />
 
                 <TextBlock x:Name="ContrastText" Style="{StaticResource Text.Sub}" />
+
+                <TextBlock Margin="0,18,0,6" Style="{StaticResource Text.Section}" Text="HISTORY" />
+                <TextBlock Margin="0,0,0,8"
+                           Style="{StaticResource Text.Sub}"
+                           Text="Colors picked from the screen this session. Click a swatch to reload it above." />
+                <ItemsControl x:Name="HistoryStrip">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="26" Height="26"
+                                    Margin="0,0,8,8"
+                                    CornerRadius="6"
+                                    BorderBrush="{StaticResource Brush.BorderStrong}"
+                                    BorderThickness="1"
+                                    Background="{Binding SwatchBrush}"
+                                    Cursor="Hand"
+                                    ToolTip="{Binding Hex}"
+                                    MouseLeftButtonDown="HistorySwatch_MouseLeftButtonDown" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
             </StackPanel>
         </ScrollViewer>
