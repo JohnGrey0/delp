@@ -1,0 +1,47 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.DockerConvertView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed" />
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Button x:Name="SwapBtn"
+                    Style="{StaticResource Button.Icon}"
+                    Content="&#8646;"
+                    ToolTip="Swap direction"
+                    Click="Swap_Click"
+                    Margin="0,0,10,0" />
+            <TextBlock x:Name="DirectionText"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Text.Sub}"
+                       Text="docker run  &#8594;  compose.yaml" />
+        </WrapPanel>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                <Button x:Name="CopyTopBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyTop_Click" />
+                <TextBlock x:Name="TopLabel" VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="DOCKER RUN" />
+            </DockPanel>
+            <Border x:Name="TopHost" Grid.Row="1" Style="{StaticResource Card.Editor}" Margin="0,0,0,14" />
+
+            <DockPanel Grid.Row="2" Margin="0,0,0,6">
+                <Button x:Name="CopyBottomBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyBottom_Click" />
+                <TextBlock x:Name="BottomLabel" VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="COMPOSE.YAML" />
+            </DockPanel>
+            <Border x:Name="BottomHost" Grid.Row="3" Style="{StaticResource Card.Editor}" />
+        </Grid>
+    </DockPanel>
+</UserControl>
