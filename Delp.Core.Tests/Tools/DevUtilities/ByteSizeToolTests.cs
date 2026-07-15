@@ -84,6 +84,18 @@ public class ByteSizeToolTests
     }
 
     [Fact]
+    public void Convert_HugeValueInSmallMultiplierUnit_DoesNotOverflowTransferTime()
+    {
+        // Bit's multiplier is 1, so decimal.MaxValue survives the initial-multiply overflow
+        // guard untouched — but at the slowest reference bandwidth (10 Mbps) the resulting
+        // duration is far more than long.MaxValue seconds. FormatDuration must not cast that
+        // through `long` (regression test: it used to throw an uncaught OverflowException,
+        // not the FormatException this API documents for oversized input).
+        var r = ByteSizeTool.Convert(decimal.MaxValue, ByteUnit.Bit);
+        Assert.All(r.TransferTimes, t => Assert.False(string.IsNullOrWhiteSpace(t.Duration)));
+    }
+
+    [Fact]
     public void TransferTime_1GB_At100Mbps_Is80Seconds()
     {
         // 1 GB = 8,000,000,000 bits; at 100,000,000 bit/s that's exactly 80 s = "1 m 20 s".

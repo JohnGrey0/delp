@@ -118,17 +118,23 @@ public static class ByteSizeTool
                 : $"{ms.ToString("0.#", CultureInfo.InvariantCulture)} ms";
         }
 
-        var whole = (long)Math.Floor(totalSeconds);
-        var s = whole % 60;
-        var totalMinutes = whole / 60;
-        var m = totalMinutes % 60;
-        var totalHours = totalMinutes / 60;
-        var h = totalHours % 24;
-        var d = totalHours / 24;
+        // Stay in decimal end-to-end here (no cast to long): at the top of the unit range a
+        // huge-but-decimal-representable size (e.g. a value expressed in Bit, which barely
+        // scales the input) can still yield a transfer time whose whole-second count exceeds
+        // long.MaxValue at the slower reference bandwidths. A (long) cast would then throw an
+        // uncaught OverflowException instead of the FormatException this API promises to throw
+        // for oversized input — decimal division/floor/modulo has no such ceiling.
+        var whole = Math.Floor(totalSeconds);
+        var s = whole % 60m;
+        var totalMinutes = Math.Floor(whole / 60m);
+        var m = totalMinutes % 60m;
+        var totalHours = Math.Floor(totalMinutes / 60m);
+        var h = totalHours % 24m;
+        var d = Math.Floor(totalHours / 24m);
 
-        if (d > 0) return $"{d} d {h} h";
-        if (h > 0) return $"{h} h {m} m";
-        if (m > 0) return $"{m} m {s} s";
+        if (d > 0) return $"{d.ToString("0", CultureInfo.InvariantCulture)} d {h.ToString("0", CultureInfo.InvariantCulture)} h";
+        if (h > 0) return $"{h.ToString("0", CultureInfo.InvariantCulture)} h {m.ToString("0", CultureInfo.InvariantCulture)} m";
+        if (m > 0) return $"{m.ToString("0", CultureInfo.InvariantCulture)} m {s.ToString("0", CultureInfo.InvariantCulture)} s";
         return $"{totalSeconds.ToString("0.#", CultureInfo.InvariantCulture)} s";
     }
 }
