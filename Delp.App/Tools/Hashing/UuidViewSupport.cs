@@ -88,4 +88,11 @@ internal sealed class UuidBatchController(TextBox countBox, TextBox outputBox)
         if (_guids.Count > 0)
             outputBox.Text = string.Join(Environment.NewLine, _guids.Select(g => UuidFormat.Apply(g, style)));
     }
+
+    /// <summary>Drops the stashed batch and blanks the output box -- used when a selector switch (e.g. UUID version) makes the previous batch's contents stale.</summary>
+    public void Clear()
+    {
+        _guids.Clear();
+        outputBox.Text = "";
+    }
 }
