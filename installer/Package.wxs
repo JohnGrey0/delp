@@ -1,9 +1,9 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
   <Package Name="Delp"
            Manufacturer="Delp"
-           Version="1.0.1"
+           Version="1.1.0"
            Language="1033"
            Scope="perUser"
            UpgradeCode="36197196-79de-40d2-ae46-095d12bc652d">
@@ -49,7 +49,7 @@
       <Shortcut Id="DelpStartMenuShortcut"
                 Directory="ProgramMenuFolder"
                 Name="Delp"
-                Description="Developer toolbox — 75 tools in your tray"
+                Description="Developer toolbox â€” 75 tools in your tray"
                 Target="[INSTALLFOLDER]delp.exe"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon="DelpIcon" />

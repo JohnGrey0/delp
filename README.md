@@ -1,37 +1,37 @@
-# Delp — developer toolbox
+﻿# Delp â€” developer toolbox
 
-75 developer tools in one native Windows app. Lives in your system tray;
+50 developer tools in one native Windows app — consolidated, capability-dense tools (one UUID generator covers all 8 versions; one formatter covers JSON/YAML/XML/SQL/GraphQL; and so on). Lives in your system tray;
 press **Ctrl+Alt+Space** anywhere to open the quick panel, or expand it into
 the full window. Windows 11 acrylic "glass" UI, dark theme, everything
 offline (the sole exception: the SSL decoder's optional fetch-from-host mode).
 
 ## Tools
 
-- **Encoding & Decoding** — Base64, URL, HTML entities, JWT decoder, unicode
+- **Encoding & Decoding** â€” Base64, URL, HTML entities, JWT decoder, unicode
   escapes, binary/hex/text, Morse, ROT-N
-- **Hashing & Generation** — MD5–SHA-512, HMAC, PBKDF2, file checksums,
-  password + passphrase generator, UUID v1–v8, random strings, Nano ID
-- **Data Format** — JSON/YAML/XML/TOML format+validate, JSONPath, converters
-  (JSON↔YAML/XML/CSV), SQL + GraphQL formatters, JSON → C#/TypeScript types
-- **Web Development** — color converter, screen color picker (eyedropper),
+- **Hashing & Generation** â€” MD5â€“SHA-512, HMAC, PBKDF2, file checksums,
+  password + passphrase generator, UUID v1â€“v8, random strings, Nano ID
+- **Data Format** â€” JSON/YAML/XML/TOML format+validate, JSONPath, converters
+  (JSONâ†”YAML/XML/CSV), SQL + GraphQL formatters, JSON â†’ C#/TypeScript types
+- **Web Development** â€” color converter, screen color picker (eyedropper),
   CSS/JS/HTML minifiers, Markdown live preview, data URIs, SVG path
   visualizer, placeholder images, URL parser/builder, Lorem Ipsum
-- **Text Processing** — case converter, regex tester + pattern library, diff,
+- **Text Processing** â€” case converter, regex tester + pattern library, diff,
   line sort/dedupe, text stats, escapes, whitespace tools, number bases,
   epoch/timestamp tools, slugs, Unicode inspector, NLP processor (stopwords,
-  Porter stemming, n-grams), text → Python list/JSON/CSV/SQL
-- **Developer Utilities** — QR codes, cron parser, git branch names, semver,
+  Porter stemming, n-grams), text â†’ Python list/JSON/CSV/SQL
+- **Developer Utilities** â€” QR codes, cron parser, git branch names, semver,
   ASCII art, HTTP status / MIME / port references, IP + CIDR info, SSL/TLS
   certificate decoder, mock data generator, Basic auth builder, code linter
   (Roslyn-powered C#), programming + shell cheat sheets
 
 ## Get it
 
-- **Installer (recommended):** `dist\delp-setup.msi` — per-user wizard, no
+- **Installer (recommended):** `dist\delp-setup.msi` â€” per-user wizard, no
   admin required, Start Menu shortcut, clean uninstall. Lowest memory use.
-- **Portable:** `dist\portable\delp.exe` — single self-contained file, no
+- **Portable:** `dist\portable\delp.exe` â€” single self-contained file, no
   installation, no .NET required. Copy anywhere and run.
-- **Portable lite:** `dist\portable-lite\delp.exe` (~40 MB) — same app, but
+- **Portable lite:** `dist\portable-lite\delp.exe` (~40 MB) â€” same app, but
   requires the .NET 10 Desktop Runtime on the machine (Windows offers the
   download automatically on first launch if it's missing). Keep
   `WebView2Loader.dll` next to it.
@@ -48,7 +48,7 @@ Requires the .NET 10 SDK.
 ```powershell
 dotnet build Delp.sln                 # debug build
 dotnet test Delp.Core.Tests           # ~2,700 unit tests
-delp.exe --smoke                      # constructs all 75 tool views headlessly
+delp.exe --smoke                      # constructs every tool view headlessly + UX lint
 
 # portable single-file exe -> dist\portable\delp.exe
 dotnet publish Delp.App -c Release -r win-x64 --self-contained true `
@@ -70,7 +70,7 @@ dotnet tool run wix -- build Package.wxs -ext WixToolset.UI.wixext `
 
 Three projects: `Delp.Core` (pure, fully-tested tool logic), `Delp.App`
 (WPF shell + one thin view per tool), `Delp.Core.Tests` (xunit). A tool is a
-`[Tool]`-attributed UserControl discovered by reflection — no registry files.
+`[Tool]`-attributed UserControl discovered by reflection â€” no registry files.
 See `docs/CONVENTIONS.md` and `docs/TOOLSPEC.md` for the full contract.
 Settings (favorites, collapsed sidebar groups) live in
 `%LOCALAPPDATA%\Delp\settings.json`.
