@@ -3,12 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
-            <CheckBox x:Name="UrlSafeBox"
-                      Content="URL-safe (RFC 4648 §5, no padding)"
-                      Checked="Option_Changed"
-                      Unchecked="Option_Changed" />
-        </StackPanel>
+        <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock VerticalAlignment="Center"
+                       Margin="0,0,10,6"
+                       Style="{StaticResource Text.Section}"
+                       Text="ALPHABET" />
+            <ComboBox x:Name="AlphabetBox"
+                      Width="180"
+                      Margin="0,0,0,6"
+                      SelectionChanged="Alphabet_Changed">
+                <ComboBoxItem Content="Base64" />
+                <ComboBoxItem Content="Base64 URL-safe" />
+                <ComboBoxItem Content="Base32 (RFC 4648)" />
+                <ComboBoxItem Content="Base32 Crockford" />
+                <ComboBoxItem Content="Base58 (Bitcoin)" />
+                <ComboBoxItem Content="Ascii85" />
+            </ComboBox>
+        </WrapPanel>
 
         <TextBlock x:Name="ErrorText"
                    DockPanel.Dock="Bottom"
@@ -43,7 +54,8 @@
                         DockPanel.Dock="Right"
                         Content="Copy"
                         Click="CopyEncoded_Click" />
-                <TextBlock VerticalAlignment="Center"
+                <TextBlock x:Name="EncodedLabelText"
+                           VerticalAlignment="Center"
                            Style="{StaticResource Text.Section}"
                            Text="BASE64" />
             </DockPanel>
