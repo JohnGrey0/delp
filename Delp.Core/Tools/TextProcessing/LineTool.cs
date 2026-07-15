@@ -13,8 +13,19 @@ public enum SortMode
     Numeric,
 }
 
+/// <summary>Off = no filtering. Keep = only lines matching <see cref="LineToolOptions.FilterPattern"/>
+/// survive. Remove = matching lines are dropped.</summary>
+public enum LineFilterMode
+{
+    Off,
+    Keep,
+    Remove,
+}
+
 /// <summary>Options for <see cref="LineTool.Process"/>. Pipeline order: trim -&gt; remove empty -&gt;
-/// sort -&gt; dedupe -&gt; reverse -&gt; shuffle (shuffle always applies last and wins over sort/reverse).</summary>
+/// filter -&gt; dedupe -&gt; sort -&gt; reverse -&gt; shuffle (shuffle always applies last and wins over
+/// sort/reverse) -&gt; number. All filter/number fields default to off so existing callers are
+/// unaffected.</summary>
 public sealed record LineToolOptions(
     SortMode Mode = SortMode.None,
     bool CaseInsensitive = false,
@@ -23,9 +34,18 @@ public sealed record LineToolOptions(
     bool RemoveEmpty = false,
     bool Reverse = false,
     bool Shuffle = false,
-    int? Seed = null);
+    int? Seed = null,
+    LineFilterMode Filter = LineFilterMode.Off,
+    string? FilterPattern = null,
+    bool FilterRegex = false,
+    bool NumberLines = false,
+    int NumberStart = 1,
+    int NumberStep = 1,
+    int NumberPad = 0);
 
-public sealed record LineResult(string Text, int Before, int After);
+/// <summary><see cref="FilteredKept"/>/<see cref="FilteredTotal"/> are null unless filtering ran;
+/// when present they describe how many of the pre-filter lines survived, for a "kept N of M" status.</summary>
+public sealed record LineResult(string Text, int Before, int After, int? FilteredKept = null, int? FilteredTotal = null);
 
 /// <summary>Sorts, dedupes, and cleans line-oriented text.</summary>
 public static class LineTool
@@ -46,11 +66,20 @@ public static class LineTool
         if (options.RemoveEmpty)
             lines = lines.Where(l => l.Length > 0).ToList();
 
-        if (options.Mode != SortMode.None)
-            lines = Sort(lines, options.Mode, options.CaseInsensitive);
+        int? filteredKept = null;
+        int? filteredTotal = null;
+        if (options.Filter != LineFilterMode.Off && !string.IsNullOrEmpty(options.FilterPattern))
+        {
+            filteredTotal = lines.Count;
+            lines = Filter(lines, options.Filter, options.FilterPattern, options.FilterRegex, options.CaseInsensitive);
+            filteredKept = lines.Count;
+        }
 
         if (options.Dedupe)
             lines = Dedupe(lines, options.CaseInsensitive);
+
+        if (options.Mode != SortMode.None)
+            lines = Sort(lines, options.Mode, options.CaseInsensitive);
 
         if (options.Reverse)
         {
@@ -61,7 +90,67 @@ public static class LineTool
         if (options.Shuffle)
             lines = Shuffle(lines, options.Seed);
 
-        return new LineResult(string.Join("\n", lines), before, lines.Count);
+        if (options.NumberLines)
+            lines = Number(lines, options.NumberStart, options.NumberStep, options.NumberPad);
+
+        return new LineResult(string.Join("\n", lines), before, lines.Count, filteredKept, filteredTotal);
+    }
+
+    /// <summary>Keeps or drops lines matching <paramref name="pattern"/>. Plain mode does a
+    /// substring search; regex mode compiles the pattern with a 2 s match timeout (the shared
+    /// <see cref="Timeout"/>) and surfaces bad patterns / runaway matches as a <see cref="FormatException"/>.</summary>
+    private static List<string> Filter(List<string> lines, LineFilterMode mode, string pattern, bool useRegex, bool ci)
+    {
+        Func<string, bool> isMatch;
+        if (useRegex)
+        {
+            Regex compiled;
+            try
+            {
+                compiled = new Regex(pattern, ci ? RegexOptions.IgnoreCase : RegexOptions.None, Timeout);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new FormatException($"Invalid filter pattern — {ex.Message}");
+            }
+
+            isMatch = line =>
+            {
+                try
+                {
+                    return compiled.IsMatch(line);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    throw new FormatException("Filter pattern timed out (2s) — it may be catastrophically backtracking.");
+                }
+            };
+        }
+        else
+        {
+            var comparison = ci ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            isMatch = line => line.Contains(pattern, comparison);
+        }
+
+        var keepOnMatch = mode == LineFilterMode.Keep;
+        return lines.Where(l => isMatch(l) == keepOnMatch).ToList();
+    }
+
+    /// <summary>Prefixes each line with a "start, start+step, …" counter (optionally zero-padded
+    /// to <paramref name="pad"/> digits), joined by ". " as the last pipeline step.</summary>
+    private static List<string> Number(List<string> lines, int start, int step, int pad)
+    {
+        var result = new List<string>(lines.Count);
+        var n = start;
+        foreach (var line in lines)
+        {
+            var label = n.ToString(CultureInfo.InvariantCulture);
+            if (pad > 0 && label.Length < pad)
+                label = label.PadLeft(pad, '0');
+            result.Add($"{label}. {line}");
+            n += step;
+        }
+        return result;
     }
 
     private static List<string> SplitLines(string text)

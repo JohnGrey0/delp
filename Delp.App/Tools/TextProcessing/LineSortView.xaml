@@ -35,6 +35,35 @@
                           Checked="Input_Changed" Unchecked="Input_Changed" />
             </WrapPanel>
 
+            <WrapPanel Margin="0,4,0,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,10,4">
+                    <TextBlock Text="Filter" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource Brush.Fg1}" />
+                    <ComboBox x:Name="FilterModeBox" Width="140" SelectionChanged="Input_Changed">
+                        <ComboBoxItem Content="Off" />
+                        <ComboBoxItem Content="Keep matching" />
+                        <ComboBoxItem Content="Remove matching" />
+                    </ComboBox>
+                </StackPanel>
+                <TextBox x:Name="FilterPatternBox"
+                         Width="150" Margin="0,0,10,4"
+                         TextChanged="Input_Changed" />
+                <CheckBox x:Name="FilterRegexBox" Content="Regex" Margin="0,0,14,4"
+                          Checked="Input_Changed" Unchecked="Input_Changed" />
+            </WrapPanel>
+
+            <WrapPanel Margin="0,4,0,0">
+                <CheckBox x:Name="NumberLinesBox" Content="Number lines" Margin="0,0,14,4"
+                          Checked="NumberLines_Changed" Unchecked="NumberLines_Changed" />
+                <StackPanel x:Name="NumberOptionsPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Start" VerticalAlignment="Center" Margin="0,0,4,4" Foreground="{StaticResource Brush.Fg1}" />
+                    <TextBox x:Name="NumberStartBox" Width="46" Margin="0,0,10,4" Text="1" TextChanged="Input_Changed" />
+                    <TextBlock Text="Step" VerticalAlignment="Center" Margin="0,0,4,4" Foreground="{StaticResource Brush.Fg1}" />
+                    <TextBox x:Name="NumberStepBox" Width="46" Margin="0,0,10,4" Text="1" TextChanged="Input_Changed" />
+                    <TextBlock Text="Pad" VerticalAlignment="Center" Margin="0,0,4,4" Foreground="{StaticResource Brush.Fg1}" />
+                    <TextBox x:Name="NumberPadBox" Width="46" Margin="0,0,10,4" Text="0" TextChanged="Input_Changed" />
+                </StackPanel>
+            </WrapPanel>
+
             <DockPanel Margin="0,10,0,4">
                 <Button x:Name="CopyOutputBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyOutput_Click" />
                 <TextBlock Text="OUTPUT" Style="{StaticResource Text.Section}" VerticalAlignment="Center" />
