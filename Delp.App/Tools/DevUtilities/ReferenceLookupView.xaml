@@ -218,6 +218,220 @@
                     </Border>
                 </DockPanel>
             </TabItem>
+
+            <TabItem Header="USER AGENT">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="UaErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Button x:Name="UaSampleBtn"
+                                        DockPanel.Dock="Right"
+                                        Content="Sample"
+                                        Click="UaSample_Click" />
+                                <TextBlock VerticalAlignment="Center"
+                                           Style="{StaticResource Text.Section}"
+                                           Text="USER AGENT STRING" />
+                            </DockPanel>
+                            <TextBox x:Name="UaInputBox"
+                                     Style="{StaticResource TextBox.Mono}"
+                                     MinHeight="64"
+                                     Margin="0,0,0,14"
+                                     TextChanged="UaInput_Changed" />
+
+                            <Border x:Name="UaBotBadge"
+                                    Style="{StaticResource Card}"
+                                    Padding="10,7"
+                                    Margin="0,0,0,12"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="UaBotBadgeText"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource Brush.Warning}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <ItemsControl x:Name="UaResultList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Padding="10,7" Margin="0,0,0,4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Foreground="{StaticResource Brush.Fg1}"
+                                                           Text="{Binding Label}" />
+                                                <TextBlock Grid.Column="1"
+                                                           FontFamily="{StaticResource Font.Mono}"
+                                                           TextWrapping="Wrap"
+                                                           Text="{Binding Value}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="CHMOD">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="ChmodErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Text.Section}" Text="PERMISSIONS" Margin="0,0,0,8" />
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" Style="{StaticResource Text.Sub}" Text="OWNER" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" Style="{StaticResource Text.Sub}" Text="GROUP" />
+                                <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Center" Style="{StaticResource Text.Sub}" Text="OTHER" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Read" />
+                                <CheckBox x:Name="OwnerReadBox" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="GroupReadBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="OtherReadBox" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Write" />
+                                <CheckBox x:Name="OwnerWriteBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="GroupWriteBox" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Center" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="OtherWriteBox" Grid.Row="2" Grid.Column="3" HorizontalAlignment="Center" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Execute" />
+                                <CheckBox x:Name="OwnerExecBox" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="GroupExecBox" Grid.Row="3" Grid.Column="2" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="OtherExecBox" Grid.Row="3" Grid.Column="3" HorizontalAlignment="Center" IsChecked="True" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                            </Grid>
+
+                            <WrapPanel Margin="0,10,0,14">
+                                <CheckBox x:Name="SetuidBox" Content="Setuid" Margin="0,0,16,4" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="SetgidBox" Content="Setgid" Margin="0,0,16,4" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                                <CheckBox x:Name="StickyBox" Content="Sticky" Margin="0,0,0,4" Checked="Grid_Changed" Unchecked="Grid_Changed" />
+                            </WrapPanel>
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="OCTAL" Margin="0,0,0,4" />
+                            <TextBox x:Name="OctalBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,14" TextChanged="Octal_Changed" />
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="SYMBOLIC" Margin="0,0,0,4" />
+                            <TextBox x:Name="SymbolicBox" FontFamily="{StaticResource Font.Mono}" Margin="0,0,0,14" TextChanged="Symbolic_Changed" />
+
+                            <DockPanel Margin="0,0,0,6">
+                                <Button x:Name="CopyCommandBtn" DockPanel.Dock="Right" Content="Copy" Click="CopyCommand_Click" />
+                                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="COMMAND LINE" />
+                            </DockPanel>
+                            <TextBox x:Name="CommandBox" FontFamily="{StaticResource Font.Mono}" IsReadOnly="True" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="BYTES">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="BytesErrorText"
+                               DockPanel.Dock="Bottom"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource Text.Error}"
+                               Visibility="Collapsed" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <WrapPanel Margin="0,0,0,14">
+                                <StackPanel Margin="0,0,10,8" MinWidth="120">
+                                    <TextBlock Style="{StaticResource Text.Section}" Text="VALUE" Margin="0,0,0,4" />
+                                    <TextBox x:Name="ByteValueBox" Text="1" TextChanged="Bytes_Changed" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,8" MinWidth="110">
+                                    <TextBlock Style="{StaticResource Text.Section}" Text="UNIT" Margin="0,0,0,4" />
+                                    <ComboBox x:Name="ByteUnitCombo" SelectionChanged="Bytes_Changed">
+                                        <ComboBoxItem Content="B" Tag="B" />
+                                        <ComboBoxItem Content="KB" Tag="KB" />
+                                        <ComboBoxItem Content="MB" Tag="MB" IsSelected="True" />
+                                        <ComboBoxItem Content="GB" Tag="GB" />
+                                        <ComboBoxItem Content="TB" Tag="TB" />
+                                        <ComboBoxItem Content="KiB" Tag="KiB" />
+                                        <ComboBoxItem Content="MiB" Tag="MiB" />
+                                        <ComboBoxItem Content="GiB" Tag="GiB" />
+                                        <ComboBoxItem Content="TiB" Tag="TiB" />
+                                        <ComboBoxItem Content="bit" Tag="Bit" />
+                                        <ComboBoxItem Content="Kbit" Tag="Kbit" />
+                                        <ComboBoxItem Content="Mbit" Tag="Mbit" />
+                                        <ComboBoxItem Content="Gbit" Tag="Gbit" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </WrapPanel>
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="EQUIVALENTS" Margin="0,0,0,6" />
+                            <ItemsControl x:Name="ByteEquivalentsList" Margin="0,0,0,18">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Padding="10,7" Margin="0,0,0,4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Foreground="{StaticResource Brush.Fg1}"
+                                                           Text="{Binding Label}" />
+                                                <TextBlock Grid.Column="1"
+                                                           FontFamily="{StaticResource Font.Mono}"
+                                                           HorizontalAlignment="Right"
+                                                           Text="{Binding Value}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Style="{StaticResource Text.Section}" Text="TRANSFER TIME" Margin="0,0,0,6" />
+                            <ItemsControl x:Name="TransferTimeList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Padding="10,7" Margin="0,0,0,4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="90" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Foreground="{StaticResource Brush.Fg1}"
+                                                           Text="{Binding RateLabel}" />
+                                                <TextBlock Grid.Column="1"
+                                                           FontFamily="{StaticResource Font.Mono}"
+                                                           HorizontalAlignment="Right"
+                                                           Text="{Binding Duration}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </UserControl>
