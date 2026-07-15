@@ -1,36 +1,74 @@
-<UserControl x:Class="Delp.App.Tools.DataFormat.JsonFormatView"
+<UserControl x:Class="Delp.App.Tools.DataFormat.FormatView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel Margin="16">
 
         <WrapPanel DockPanel.Dock="Top">
+            <TextBlock Text="Language"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Text.Sub}"
+                       Margin="0,0,6,10" />
+            <ComboBox x:Name="LanguageCombo"
+                      Width="110"
+                      Margin="0,0,16,10"
+                      SelectionChanged="LanguageCombo_SelectionChanged">
+                <ComboBoxItem Content="JSON" IsSelected="True" />
+                <ComboBoxItem Content="YAML" />
+                <ComboBoxItem Content="XML" />
+                <ComboBoxItem Content="SQL" />
+                <ComboBoxItem Content="GraphQL" />
+            </ComboBox>
+
             <Button x:Name="FormatBtn"
-                    Margin="0,0,8,8"
                     Style="{StaticResource Button.Primary}"
                     Content="Format"
-                    Click="Format_Click" />
+                    Click="Format_Click"
+                    Margin="0,0,8,10" />
             <Button x:Name="MinifyBtn"
-                    Margin="0,0,8,8"
                     Content="Minify"
-                    Click="Minify_Click" />
+                    Click="Minify_Click"
+                    Margin="0,0,16,10" />
+
+            <TextBlock x:Name="IndentLabel"
+                       Text="Indent"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Text.Sub}"
+                       Margin="0,0,6,10" />
             <ComboBox x:Name="IndentCombo"
                       Width="110"
-                      Margin="0,0,8,8"
+                      Margin="0,0,16,10"
                       SelectionChanged="Option_Changed">
-                <ComboBoxItem Content="2 spaces" Tag="2" IsSelected="True" />
-                <ComboBoxItem Content="4 spaces" Tag="4" />
-                <ComboBoxItem Content="Tab" Tag="Tab" />
+                <ComboBoxItem x:Name="Indent2Item" Content="2 spaces" Tag="2" IsSelected="True" />
+                <ComboBoxItem x:Name="Indent4Item" Content="4 spaces" Tag="4" />
+                <ComboBoxItem x:Name="IndentTabItem" Content="Tab" Tag="Tab" />
             </ComboBox>
+
             <CheckBox x:Name="SortKeysBox"
-                      Margin="0,0,16,8"
                       Content="Sort keys"
+                      Margin="0,0,16,10"
                       Checked="Option_Changed"
                       Unchecked="Option_Changed" />
             <CheckBox x:Name="EscapeNonAsciiBox"
-                      Margin="0,0,0,8"
                       Content="Escape non-ASCII"
+                      Margin="0,0,16,10"
                       Checked="Option_Changed"
                       Unchecked="Option_Changed" />
+            <CheckBox x:Name="OmitDeclarationBox"
+                      Content="Omit XML declaration"
+                      Margin="0,0,16,10"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+            <CheckBox x:Name="UppercaseBox"
+                      Content="Uppercase keywords"
+                      IsChecked="True"
+                      Margin="0,0,16,10"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+            <TextBlock x:Name="YamlNoteText"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Text.Sub}"
+                       Text="Comments are not preserved."
+                       Margin="0,0,0,10" />
         </WrapPanel>
 
         <TextBlock x:Name="StatusText"
