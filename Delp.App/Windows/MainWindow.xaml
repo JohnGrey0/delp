@@ -38,6 +38,16 @@
 
             <!-- Sidebar -->
             <DockPanel Grid.Column="0" Margin="12,2,4,12">
+                <Button x:Name="AboutBtn"
+                        DockPanel.Dock="Bottom"
+                        Style="{StaticResource Button.Icon}"
+                        HorizontalAlignment="Left"
+                        Margin="4,8,4,0"
+                        Padding="6,3"
+                        FontSize="11"
+                        Foreground="{StaticResource Brush.Fg2}"
+                        ToolTip="About Delp"
+                        Click="About_Click" />
                 <TextBox x:Name="SearchBox"
                          DockPanel.Dock="Top"
                          Style="{StaticResource TextBox.Search}"

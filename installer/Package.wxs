@@ -3,7 +3,7 @@
 
   <Package Name="Delp"
            Manufacturer="Delp"
-           Version="1.1.0"
+           Version="1.1.1"
            Language="1033"
            Scope="perUser"
            UpgradeCode="36197196-79de-40d2-ae46-095d12bc652d">

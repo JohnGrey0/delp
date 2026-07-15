@@ -21,6 +21,7 @@ public partial class MainWindow : GlassWindow
         InitializeComponent();
         WelcomeHint.Text =
             $"{ToolCatalog.All.Count} tools ready. Pick one from the sidebar, or press Ctrl+Alt+Space anywhere for the quick panel.";
+        AboutBtn.Content = $"Delp v{AppInfo.Version}  ·  About";
         SettingsService.FavoritesChanged += OnFavoritesChanged;
         RefreshNav(null);
     }
@@ -136,6 +137,8 @@ public partial class MainWindow : GlassWindow
         if (e.ButtonState == MouseButtonState.Pressed)
             DragMove();
     }
+
+    private void About_Click(object sender, RoutedEventArgs e) => AboutWindow.Open(this);
 
     private void Minimize_Click(object sender, RoutedEventArgs e) =>
         WindowState = WindowState.Minimized;

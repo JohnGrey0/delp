@@ -73,6 +73,10 @@ public partial class App : Application
         quick.Click += (_, _) => ToggleFlyout();
         menu.Items.Add(quick);
 
+        var about = new MenuItem { Header = "About Delp" };
+        about.Click += (_, _) => AboutWindow.Open(_main is { IsVisible: true } ? _main : null);
+        menu.Items.Add(about);
+
         var startup = new MenuItem();
         void RefreshStartupHeader() =>
             startup.Header = (StartupManager.IsEnabled() ? "✓  " : "") + "Start with Windows";
@@ -163,9 +167,18 @@ public partial class App : Application
     /// </summary>
     private void RunWindowShot(string? toolId)
     {
-        var window = new MainWindow();
-        if (toolId is not null)
-            window.SelectTool(toolId);
+        Window window;
+        if (toolId == "about")
+        {
+            window = new AboutWindow { WindowStartupLocation = WindowStartupLocation.CenterScreen };
+        }
+        else
+        {
+            var main = new MainWindow();
+            if (toolId is not null)
+                main.SelectTool(toolId);
+            window = main;
+        }
         window.Show();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
