@@ -1243,3 +1243,328 @@ the overlay Window move file-wise into this tool's ownership unchanged.
 Adds an EXPECTED row under the digest rows: paste any expected hash →
 auto-detects which algorithm row it matches (by length + comparison, using
 ChecksumTool.Verify) and shows the ✓/✗ badge beside that row.
+
+## Batch Q — Community-Researched Additions (50 → 60 tools)
+
+Sourced from HN/marketplace/web-tool research (2026-07). Ten new tools plus
+seven upgrades to existing panes. Everything is offline; no new NuGet
+packages — implement by hand in Delp.Core per CONVENTIONS.md. Upgrade
+sections ("Q-U*") follow the Batch P ground rules: Core APIs of other tools
+stay untouched, absorbed capability keeps its keywords, and
+build/test/--smoke are the exit gate. Where a spec says a tool may fetch
+reference *data* (never code) at build time, embed the result as C# source
+with a license header — the shipped app never touches the network.
+
+### Q1: curl-convert — cURL ↔ Code Converter · WebDev · 110 · `curl,http,request,convert,code,python,fetch,powershell,httpclient`
+**Core** `Delp.Core/Tools/Common/ShellTokenizer.cs` — shared POSIX-ish arg
+splitter (single/double quotes, backslash escapes, backslash-newline and
+`^`-newline continuations); used by Q1 and Q8 (same agent owns both).
+`CurlTool.Parse(string)` → `CurlRequest(Method, Url, Headers, Cookies,
+BodyKind None/Raw/UrlEncodedForm/Multipart/Json, Body, FormParts, UserAuth,
+Insecure, FollowRedirects, Compressed, Warnings)`. Flags: -X/--request,
+-H/--header, -d/--data/--data-raw/--data-binary/--data-urlencode, --json,
+-F/--form, -u/--user, -b/--cookie, -A/--user-agent, -e/--referer,
+-k/--insecure, -L/--location, --compressed, -I/--head, -G/--get (data moves
+to query string), --url, -o/-s/-v (ignored). Unknown flags land in
+`Warnings`, never throw; method inferred (POST when body present).
+`CurlTool.Generate(CurlRequest, Target)` for targets: C# (HttpClient,
+async/await), Python (requests), JavaScript (fetch), PowerShell
+(Invoke-RestMethod, splatted), Go (net/http). `ToCurl(CurlRequest)` emits a
+canonical curl line (round-trip). Generated code must be syntactically
+valid and idiomatic: headers dict/collection, basic-auth per target's
+native mechanism, JSON body pretty-printed when input was JSON.
+**UI** INPUT curl box (`TextBox.Mono`, live 300 ms debounce) top; BREAKDOWN
+strip (method badge, URL, N headers, body kind) as an ItemsControl;
+TARGET ComboBox; OUTPUT plain editor + Copy; warnings on the error line
+(`Brush.Warning` styling note: reuse Text.Error block but message prefix
+"Note:"). **Tests** quoting/continuations, multiple -H, --data-urlencode
+encoding, -u → auth per target, -G query move, --json shorthand, ToCurl
+round-trip, one fragment assertion per generated language.
+
+### Q2: docker-convert — Docker Run ↔ Compose · DevUtilities · 45 · `docker,compose,container,convert,composerize,yaml`
+**Core** `DockerTool.RunToCompose(string)` → compose YAML (YamlDotNet
+serialize; service name from --name else image name sans registry/tag).
+Flags: -p/--publish, -v/--volume, --mount, -e/--env, --env-file, --name,
+--restart, --network, --hostname, -w/--workdir, -u/--user, --entrypoint,
+--label, --add-host, --device, --cap-add/--cap-drop, --privileged,
+--memory/--cpus (deploy.resources.limits), --health-* (healthcheck block),
+-it (tty + stdin_open), --rm/-d (dropped with a warning note), trailing
+image + command. Unknown flags → warnings list appended as YAML comments.
+`ComposeToRun(string yaml)` → one `docker run` line per service (multi-line
+`\` continuation formatting option). Uses ShellTokenizer from Q1.
+**UI** mirror convert-data: two mono editors, ⇄ swap button flips
+direction+contents, live debounce, warnings line. **Tests** every flag
+class, quoting in env values, round-trip run→compose→run, multi-service
+compose, restart-policy mapping, healthcheck mapping.
+
+### Q3: json-viz — JSON Tree Viewer · DataFormat · 30 · `json,tree,viewer,visualize,explore,crack,inspect,path`
+**Core** `JsonTreeTool.Load(string json)` → `JsonTree` wrapper owning the
+JsonDocument (IDisposable); `JsonTree.Root` → `JsonTreeNode(Key, Kind,
+Preview, Path, Pointer, ChildCount)`; `node.Children()` materializes
+lazily (perf: a 10 MB document must load without walking every node).
+Preview: strings truncated at 80 chars with quotes, numbers/bools/null
+verbatim, objects `{N props}`, arrays `[N items]`. Path = JSONPath
+(`$.a.b[0]`, bracket-quote keys needing it), Pointer = RFC 6901 (escape
+`~`→`~0`, `/`→`~1`). `Search(tree, query, max 500)` — case-insensitive
+substring over keys and leaf values, iterative, returns paths.
+**UI** TabControl: INPUT (Json editor + auto-load ≤2 MB on 400 ms debounce,
+explicit Load `Button.Primary` for bigger; parse in Task.Run) | TREE
+(search box; virtualized TreeView — `VirtualizingStackPanel.IsVirtualizing`
++ lazy expansion via placeholder-child pattern; status line "N nodes shown";
+selecting a node fills a bottom row: JSONPath + Pointer + value, each with
+Copy). Searching expands/reveals the first match and lists match count.
+Dispose the previous JsonTree on reload. **Tests** previews, path/pointer
+escaping, lazy ChildCount, search cap, malformed input FormatException,
+deep nesting (1000 levels) doesn't stack-overflow.
+
+### Q4: table-convert — Table Converter · DataFormat · 40 · `table,markdown,csv,tsv,excel,ascii,sql,insert,html,latex,convert`
+**Core** `TableTool.Detect(string)` → Csv/Tsv/Markdown/Json (TSV wins when
+tabs present — Excel paste is TSV); `Parse(text, format, hasHeader,
+delimiter)` → `TableData(Headers, Rows)` (CsvHelper for CSV/TSV; markdown
+pipe-tables incl. escaped `\|` by hand; JSON: array-of-objects with union
+of keys, or array-of-arrays). `Write(TableData, target, TableWriteOptions)`
+targets: Markdown (per-column alignment option), AsciiBox (`+-|` or
+box-drawing borders option), Html, SqlInsert (table-name option, single
+INSERT with value list per row, `''` escaping), Json (objects or arrays
+option), Csv, Tsv, LaTeX (tabular). Ragged rows pad with "".
+**UI** FROM ComboBox (Auto-detect default, shows what was detected) +
+has-header CheckBox + delimiter TextBox (CSV only); TO ComboBox +
+contextual options (alignment ComboBox for Markdown, borders ComboBox for
+ASCII, table-name TextBox for SQL, shape ComboBox for JSON); two mono
+editors, live debounce; input hint line "Tip: paste straight from Excel /
+Google Sheets". **Tests** detection matrix, quoted cells with commas +
+newlines, `\|` in markdown, SQL quote escaping, alignment rows, LaTeX
+special chars escaped, ragged padding, empty input.
+
+### Q5: totp — TOTP Code Generator · Hashing · 60 · `totp,otp,2fa,mfa,authenticator,rfc 6238,hotp,code`
+**Core** `TotpTool`: `DecodeBase32` (RFC 4648, case/space/padding
+tolerant, FormatException on bad chars); `ParseOtpAuthUri` →
+`OtpConfig(Secret, Issuer, Account, Digits, PeriodSeconds, Algorithm)`;
+`BuildOtpAuthUri(OtpConfig)`; `TotpCode(secret, DateTimeOffset, digits
+6/7/8, period, SHA1/SHA256/SHA512)`; `HotpCode(secret, counter, digits)`;
+`SecondsRemaining(now, period)`. Pure — all time injected.
+**UI** SECRET box accepting Base32 or a full otpauth:// URI (live);
+options row: digits ComboBox, period TextBox, algorithm ComboBox
+(defaults 6/30/SHA1); large current code (`Text.Title`, `Consolas`,
+grouped "123 456"), countdown as text + a thin accent Border whose width
+animates the remaining fraction (no ProgressBar); prev/next codes in
+`Brush.Fg2`; Copy button; QR pane rendering the otpauth URI via QrTool for
+enrollment testing; note: "Dev/testing helper — secrets are never stored."
+DispatcherTimer 500 ms started/stopped on IsVisibleChanged (no leak).
+**Tests** RFC 6238 Appendix B vectors (all three algorithms), RFC 4226
+HOTP vectors, Base32 tolerance + failure, URI round-trip, digits/period
+variants.
+
+### Q6: gitignore — .gitignore Generator · DevUtilities · 35 · `gitignore,git,ignore,templates,generator`
+**Core** `GitignoreData` partial classes (Languages / IDEs / OS /
+Frameworks groups) holding ~40 templates as raw string literals, content
+taken verbatim from github/gitignore (CC0-1.0 — attribute in a file
+header comment; fetch at build time to embed, ship offline). Must include:
+Node, Python, VisualStudio, VisualStudioCode, JetBrains, Java, Go, Rust,
+C++, C, Ruby, PHP, Swift, Kotlin, Dart, Elixir, Haskell, Scala, R, Vim,
+Emacs, SublimeText, Eclipse, Windows, macOS, Linux, Unity, UnrealEngine,
+Android, Xcode, Django, Rails, Laravel, Terraform, Ansible.
+`GitignoreTool.Compose(names)` → merged output: `# --- Name ---` section
+headers, duplicate non-comment patterns across sections dropped (first
+wins), trailing blank-line normalization. `Templates` exposes
+(Name, Group) list.
+**UI** search box filtering a grouped check list (ItemsControl of group
+headers + CheckBox items — NOT ListBox-in-ScrollViewer wheel-trap; one
+outer ScrollViewer with plain ItemsControls is fine); "N selected · Clear"
+line; OUTPUT editor + Copy + "Save as…" (SaveFileDialog, FileName
+".gitignore"). Live recompose on any toggle. **Tests** template list ≥ 35,
+unique names, every template non-empty, compose headers + cross-template
+dedupe (Windows+macOS), empty selection → "".
+
+### Q7: code-shot — Code Screenshot · DevUtilities · 55 · `code,screenshot,snippet,image,carbon,share,png`
+**Core** `CodeShotTheme(Name, GradientStops, CardBg, DefaultFg, …)` data +
+`CodeShotThemes.All` (Midnight, Slate, Sunset, Paper-light) — data only.
+**App** (view-heavy tool; Core tests cover theme data only): input
+`TextBox.Mono`; options: language ComboBox (populated from AvalonEdit
+`HighlightingManager.Instance.HighlightingDefinitions` + "Plain"), theme
+ComboBox, window-chrome CheckBox (traffic dots + optional title TextBox),
+line-numbers CheckBox, padding ComboBox (S/M/L), scale ComboBox (1×/2×).
+PREVIEW: offscreen visual — gradient Border → rounded card Border → drop
+shadow → AvalonEdit TextEditor (read-only, sized to content, syntax per
+selection) — Measure/Arrange then RenderTargetBitmap at scale; shown in an
+Image inside a scrollable Card; 300 ms debounce; render in try/catch to
+the error line. EXPORT: "Copy image" (Clipboard.SetImage) + "Save PNG…".
+Exemption: the rendered image is *content*, so its colors are the theme
+record's own palette, not app brushes (the surrounding chrome still uses
+theme resources). Cap input at 300 lines / 20k chars with a friendly error.
+**Tests** theme data sanity (names unique, valid hex, ≥4 themes).
+
+### Q8: shortcut-cheatsheet — Keyboard Shortcut Cheat Sheet · DevUtilities · 145 · `shortcuts,keybindings,vim,vscode,visual studio,jetbrains,terminal,hotkeys,cheatsheet`
+**Core** `ShortcutEntry(Action, Category, Keys, Notes?)` +
+`ShortcutCheatSheetData` partial files per editor: Vim (~120 entries
+across Motions / Editing / Visual / Search & Replace / Windows & Tabs /
+Marks, Registers & Macros / Files), VS Code (~80, Windows chords),
+Visual Studio (~50), JetBrains/Rider (~50), Terminal (~35: readline/bash
++ Windows Terminal + tmux basics). `Editors` list + `Search(editor,
+query)` matching action/keys/category, case-insensitive.
+**UI** editor TabControl (VIM | VS CODE | VISUAL STUDIO | JETBRAINS |
+TERMINAL); per-tab: search box + virtualized ListBox of rows — keys in
+mono accent chip (Border + TextBlock, `Consolas`), action, category
+grouping headers following ShellCheatSheetView's visual pattern. Click a
+row → copies the keys (Ui.Copy on a per-row copy affordance is fine too).
+**Tests** every editor non-empty at the sizes above (±20%), unique
+(editor, action) pairs, search hits ("delete word" finds `dw` in Vim;
+"rename" finds F2 in VS Code), no empty Keys.
+
+### Q9: image-convert — Image Converter · WebDev · 95 · `image,convert,resize,png,jpeg,webp,ico,favicon,exif,compress`
+**Core** `IcoTool.Write(frames: (int Size, byte[] Png)[])` → ICO bytes
+(PNG-compressed frames, proper ICONDIR/ICONDIRENTRY); `IcoTool.ReadSizes
+(byte[])` for verification. Pure byte manipulation — fully testable.
+**App support** `ImageConvertSupport.cs` beside the view (WIC lives in
+WPF, so this logic is App-side by necessity): Load via BitmapDecoder
+(any installed codec — WebP/HEIC decode when the OS extension exists;
+mention in a hint), Info (format, WxH, DPI, frame count, file size, common
+EXIF: camera, taken date, orientation, GPS-present flag), Transform
+(resize W/H with lock-aspect + percent presets, rotate 90/180/270, flip),
+Encode PNG / JPEG (quality 1–100) / BMP / GIF / TIFF, strip-metadata
+option (re-encode without copying metadata), favicon export (render 16,
+24, 32, 48, 64, 128, 256 then IcoTool). All decode/encode inside
+Task.Run.
+**UI** drop target Card ("Drop an image or Browse…", OpenFileDialog) —
+follow HashGeneratorView's drag-drop wiring pattern (own code; don't
+touch that tool's files); left: preview Image on a checkerboard
+DrawingBrush, INFO panel (ItemsControl rows + strip-metadata CheckBox);
+right: format ComboBox, quality TextBox (JPEG only), resize row, rotate/
+flip Button.Icon row, "Save as…" Button.Primary, "Export favicon (.ico)"
+button, before → after size line after save. Errors inline. **Tests**
+IcoTool: header layout, frame offsets/lengths, ReadSizes round-trip,
+rejects empty frame list; use a hardcoded base64 1×1 PNG fixture.
+
+### Q10: mermaid — Mermaid Diagram Preview · WebDev · 55 · `mermaid,diagram,flowchart,sequence,uml,er,gantt,preview`
+**STATUS: deferred pending user approval to vendor `mermaid.min.js` (MIT)
+into `Delp.App/Assets/` — the shipped app stays fully offline; the file is
+build-time vendored, never fetched at runtime. Do not build until the
+asset exists.**
+**Core** `MermaidTool.DetectType(text)` (flowchart/sequenceDiagram/
+classDiagram/stateDiagram/erDiagram/gantt/pie/journey/mindmap/unknown) +
+`Samples` (one starter snippet per type). **App** left mono editor, right
+WebView2. First use: extract mermaid.min.js + a local host.html (dark
+`theme: 'dark'`, `startOnLoad: false`, render via postMessage → result/
+error back through `window.chrome.webview.postMessage`) to
+`%LOCALAPPDATA%\Delp\web\<version>\`; `SetVirtualHostNameToFolderMapping`
+("delp.local", Deny external resources); follow MarkdownPreviewView's
+WebView2 env/user-data-folder pattern. NavigateToString is banned here
+(2 MB limit). Buttons: sample ComboBox, Copy SVG, Save SVG…, Save PNG…
+(SVG string marshalled back; PNG via offscreen canvas in the page).
+500 ms debounce; render errors on the inline error line. **Tests** Core
+detection + samples render-type coverage.
+
+## Batch Q upgrades (existing panes; Batch P ground rules apply)
+
+### Q-U1: unix-time — becomes "Date & Time Converter" · TextProcessing · 100
+Keywords += `timezone,zones,delta,duration,filetime,ldap,iso 8601,
+milliseconds,ticks`. CONVERT tab: input format ComboBox
+(Auto / Seconds / Milliseconds / Microseconds / FILETIME–LDAP / .NET
+ticks) — Auto disambiguates by digit count/magnitude and says what it
+chose; output rows grow: epoch ms, FILETIME/LDAP (100 ns since 1601),
+.NET ticks, ISO 8601 UTC + local, RFC 1123. NEW ZONES tab: datetime
+TextBox (blank = now) + source-zone editable ComboBox
+(TimeZoneInfo.GetSystemTimeZones, typing filters); pinned-zone rows (UTC,
+Local, US Pacific, US Eastern, London, Berlin, India, China/Singapore,
+Tokyo, Sydney by default; add via ComboBox, ✕ per row, session-only) each
+showing converted local time, UTC offset, and a DST badge when active.
+NEW DELTA tab: two datetime boxes (blank = now) → human duration
+("3 days 4 h 12 m"), total days/hours/minutes/seconds rows, ISO 8601
+duration; beneath, date-math row: base ± N unit-ComboBox → result.
+Core: new pure functions on UnixTimeTool (or sibling DateTimeTool) —
+zones via TimeZoneInfo.FindSystemTimeZoneById; tests use "UTC",
+"Pacific Standard Time", "Tokyo Standard Time" (present on Windows CI)
+and cover a DST boundary, FILETIME round-trip, Auto detection bands.
+
+### Q-U2: base64 — gains Base32/Base58/Ascii85 · Encoding · 10
+The URL-safe CheckBox becomes an alphabet ComboBox: Base64 / Base64
+URL-safe / Base32 (RFC 4648) / Base32 Crockford / Base58 (Bitcoin) /
+Ascii85. New Core `BaseNTool` (Base64 stays in Base64Tool): Base32 pad/
+case tolerant on decode; Crockford maps I/L→1, O→0 on decode; Base58 via
+BigInteger preserving leading zeros as `1`s; Ascii85 standard with `z`
+shorthand, auto-strips `<~ ~>` on decode. Description: "Convert text to
+and from Base64, Base32, Base58, and Ascii85." Keywords +=
+`base32,base58,base85,ascii85,crockford,base-n`. Existing Base64 behavior
+(incl. URL-safe) must be byte-identical. **Tests** RFC 4648 vectors,
+Crockford aliases, Base58 leading-zero vectors (`\0\0abc`), Ascii85
+vectors + wrapper stripping, unicode round-trips for every alphabet.
+
+### Q-U3: nanoid — becomes "ID Generator" · Hashing · 200
+Keywords += `ulid,snowflake,objectid,mongodb,id,sortable,decode`.
+TabControl: GENERATE (kind ComboBox: Nano ID — existing options verbatim /
+ULID — count + monotonic-within-batch per spec, uppercase Crockford /
+Snowflake — epoch ComboBox Twitter·Discord·Custom-ms + worker & process
+TextBoxes / MongoDB ObjectId — count) | DECODE (paste one ID per line →
+auto-detect ULID (26 Crockford) · ObjectId (24 hex) · Snowflake (numeric,
+epoch ComboBox) · UUID v1/v6/v7 (via existing UuidTools) → rows: type,
+embedded UTC timestamp, remaining fields (randomness / worker / process /
+sequence / counter)). New Core: UlidTool, SnowflakeTool, ObjectIdTool,
+IdDecodeTool. **Tests** ULID spec vector + monotonicity + Crockford
+alphabet, Snowflake decode of a known Discord ID, ObjectId round-trip,
+detector ambiguity rules (26 hex chars ≠ ObjectId), UUID v7 timestamp
+extraction.
+
+### Q-U4: color-convert — gains CONTRAST + VISION tabs · WebDev · 10
+Existing converter+picker+history becomes the first tab (CONVERT,
+unchanged). NEW CONTRAST tab: foreground + background inputs (any format
+ColorTool parses) each with swatch + "Pick from screen" (reuse the
+existing overlay flow); big ratio readout ("4.67 : 1"); four pass/fail
+badges — AA normal ≥4.5, AA large ≥3, AAA normal ≥7, AAA large ≥4.5 —
+`Brush.Success`/`Brush.Danger`; live sample text block rendered fg-on-bg
+(exempt from theme-brush rule: it displays the user's colors). NEW VISION
+tab: one color input → swatch row simulating Protanopia / Deuteranopia /
+Tritanopia / Achromatopsia with hex under each; new Core
+`ColorVisionTool.Simulate(rgb, kind)` using Viénot/Brettel matrices
+(document source values in a comment). Keywords += `contrast,wcag,
+accessibility,a11y,colorblind,protanopia,deuteranopia`. **Tests** ratio
+badge thresholds at boundaries, simulation of pure red/green/blue against
+published reference outputs (±2 per channel), achromatopsia = luminance
+gray.
+
+### Q-U5: line-sort — gains filtering + numbering · TextProcessing · 50
+Options grow: Filter ComboBox (Off / Keep matching / Remove matching) +
+pattern TextBox + "Regex" CheckBox (2 s timeout; invalid pattern → error
+line, output unchanged) — filter honors the existing Case-insensitive
+CheckBox; "Number lines" CheckBox with start/step/pad TextBoxes (shown
+only when checked, joined by ". " separator). Pipeline order: trim →
+remove-empty → filter → dedupe → sort → reverse/shuffle → number. Status
+line gains "kept N of M" when filtering. Core LineSortTool options record
+extended (new fields default to off — existing tests must pass
+unmodified). Keywords += `filter,grep,keep,remove,number lines,sequence`.
+**Tests** keep/remove × regex/plain × case, invalid regex, numbering
+format/pad/step, pipeline order (filter before dedupe), status counts.
+
+### Q-U6: jsonpath — becomes "JSONPath & XPath Query" · DataFormat · 20
+TabControl: JSONPATH (existing UI verbatim) | XPATH: XML mono editor +
+expression TextBox (live 300 ms), results header "N matches", virtualized
+ListBox of matches — node outer-XML snippet (truncated 200 chars) +
+computed absolute path; supports value results (text()/count()/@attr →
+single value row). New Core `XPathTool.Evaluate(xml, expr, max 1000)`:
+XPathDocument over an XmlReader with DtdProcessing.Prohibit +
+XmlResolver = null (XXE-safe); FormatException with a human message on
+bad XML or bad expression; note under the box: "Namespaces: match by
+local-name() — e.g. //*[local-name()='item']". Keywords +=
+`xpath,xml,xml query,nodes`. **Tests** element/attribute/text selection,
+count() and boolean results, max cap, DTD/XXE input rejected, invalid
+expression message, namespace local-name() recipe works.
+
+### Q-U7: reference — gains USER AGENT / CHMOD / BYTES tabs · DevUtilities · 60
+Existing HTTP STATUS | MIME TYPES | PORTS tabs unchanged. NEW USER AGENT:
+paste a UA string (live) → rows: browser + version, rendering engine, OS +
+version, device type (Desktop/Mobile/Tablet/Bot/Console), bot badge; new
+Core `UserAgentData` (~60 curated regexes: Chrome/Edge/Firefox/Safari/
+Opera/Samsung Internet/IE, Windows/macOS/iOS/Android/Linux/ChromeOS,
+Googlebot/Bingbot/common crawlers — every regex compiled with the 2 s
+timeout) + `UserAgentTool.Parse`; "Sample" button cycles 5 embedded real
+UAs. NEW CHMOD: 3×3 CheckBox grid (read/write/execute × owner/group/
+other) + setuid/setgid/sticky row ↔ octal TextBox (e.g. 4755) ↔ symbolic
+TextBox (rwsr-xr-x) ↔ read-only command line `chmod 755 file` with Copy —
+all four representations stay in sync whichever is edited (reentrancy
+guard); new Core `ChmodTool`. NEW BYTES: value TextBox + unit ComboBox
+(B, KB…TB, KiB…TiB, bit, Kbit…Gbit) → ItemsControl of all equivalents
+(SI, IEC, bits; InvariantCulture, thousands separators) + transfer-time
+rows at 10/100 Mbps, 1/10 Gbps; new Core `ByteSizeTool`. Keywords +=
+`user agent,ua,browser,chmod,permissions,octal,bytes,kib,size,bandwidth`.
+**Tests** UA matrix over the 5 samples + unknown UA fallback, chmod
+octal↔symbolic↔grid round-trips incl. special bits, byte conversions +
+0/negative/huge inputs, transfer-time math.
