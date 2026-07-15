@@ -19,7 +19,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\delp.ico</ApplicationIcon>
     <AssemblyName>delp</AssemblyName>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <AssemblyTitle>Delp</AssemblyTitle>
     <Product>Delp</Product>
   </PropertyGroup>

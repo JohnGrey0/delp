@@ -1,6 +1,6 @@
 # Delp — Contribution Conventions (READ FIRST)
 
-Delp is a native Windows (WPF, .NET 10) developer toolbox: 50 tools in one
+Delp is a native Windows (WPF, .NET 10) developer toolbox: 59 tools in one
 tray-first glass-UI app. This document is the binding contract for every tool
 implementation. The reference implementation is the **Base64 tool** — read all
 three of these files before writing any code:

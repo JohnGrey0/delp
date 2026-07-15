@@ -3,7 +3,7 @@
 
   <Package Name="Delp"
            Manufacturer="Delp"
-           Version="1.1.1"
+           Version="1.2.0"
            Language="1033"
            Scope="perUser"
            UpgradeCode="36197196-79de-40d2-ae46-095d12bc652d">
@@ -49,7 +49,7 @@
       <Shortcut Id="DelpStartMenuShortcut"
                 Directory="ProgramMenuFolder"
                 Name="Delp"
-                Description="Developer toolbox — 50 tools in your tray"
+                Description="Developer toolbox — 59 tools in your tray"
                 Target="[INSTALLFOLDER]delp.exe"
                 WorkingDirectory="INSTALLFOLDER"
                 Icon="DelpIcon" />
