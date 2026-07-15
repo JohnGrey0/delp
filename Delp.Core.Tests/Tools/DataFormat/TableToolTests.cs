@@ -232,6 +232,59 @@ public class TableToolTests
         Assert.Equal("", TableTool.Write(TableData.Empty, TableWriteTarget.SqlInsert));
     }
 
+    [Fact]
+    public void Write_SqlInsert_HeaderWithSpace_IsDoubleQuotedIdentifier()
+    {
+        var data = new TableData(["first name"], [["Ada"]]);
+        var sql = TableTool.Write(data, TableWriteTarget.SqlInsert);
+        Assert.Contains("(\"first name\")", sql);
+    }
+
+    [Fact]
+    public void Write_SqlInsert_HeaderWithQuotesAndBrackets_IsEscapedInIdentifier()
+    {
+        var data = new TableData(["a\"b", "[id]"], [["1", "2"]]);
+        var sql = TableTool.Write(data, TableWriteTarget.SqlInsert);
+        // Embedded double quote is doubled; brackets force quoting but pass through inside.
+        Assert.Contains("(\"a\"\"b\", \"[id]\")", sql);
+    }
+
+    [Fact]
+    public void Write_SqlInsert_PlainIdentifiers_AreNotQuoted()
+    {
+        var sql = TableTool.Write(Simple, TableWriteTarget.SqlInsert, new TableWriteOptions(SqlTableName: "people"));
+        Assert.Contains("INSERT INTO people (name, age)", sql);
+        Assert.DoesNotContain("\"", sql);
+    }
+
+    [Fact]
+    public void Write_SqlInsert_TableNameWithSpace_IsQuoted()
+    {
+        var sql = TableTool.Write(Simple, TableWriteTarget.SqlInsert, new TableWriteOptions(SqlTableName: "my table"));
+        Assert.Contains("INSERT INTO \"my table\" (", sql);
+    }
+
+    [Fact]
+    public void Write_SqlInsert_EmptyCell_BecomesEmptyStringLiteralNotNull()
+    {
+        var data = new TableData(["a", "b"], [["x", ""]]);
+        var sql = TableTool.Write(data, TableWriteTarget.SqlInsert);
+        Assert.Contains("('x', '')", sql);
+        Assert.DoesNotContain("NULL", sql);
+    }
+
+    // ---------------- Write: Markdown newline handling ----------------
+
+    [Fact]
+    public void Write_Markdown_CellWithNewline_BecomesBrAndStaysSingleRow()
+    {
+        var data = new TableData(["a"], [["line1\nline2"]]);
+        var md = TableTool.Write(data, TableWriteTarget.Markdown);
+        Assert.Contains("line1<br>line2", md);
+        // Header, separator, one data row — the embedded newline must not split the row in two.
+        Assert.Equal(3, md.Split('\n').Length);
+    }
+
     // ---------------- Write: JSON ----------------
 
     [Fact]

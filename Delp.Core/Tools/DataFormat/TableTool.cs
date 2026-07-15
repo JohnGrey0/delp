@@ -173,6 +173,10 @@ public static class TableTool
         }
     }
 
+    // CSV-injection caveat: cells beginning with = + - @ (or tab/CR) are written verbatim. This keeps
+    // the output structurally valid, lossless CSV (prefixing a guard character would silently corrupt
+    // the data and break round-tripping), but a spreadsheet that opens the file may interpret such a
+    // cell as a formula. Callers exporting untrusted data for Excel should sanitize on their side.
     private static string WriteDelimited(TableData data, char delimiter)
     {
         if (data.Headers.Count == 0)
@@ -426,6 +430,11 @@ public static class TableTool
 
     // ---------------- ASCII / Unicode box ----------------
 
+    // Width caveat: column widths use string length in UTF-16 code units. That is correct for ASCII
+    // and BMP text, but full-width CJK and most emoji occupy two terminal columns (and emoji/astral
+    // chars are two code units), while combining marks occupy zero — so a table containing them will
+    // look slightly misaligned in a fixed-width font. A precise fix needs an East-Asian-width table;
+    // it is intentionally out of scope here.
     private static string WriteAsciiBox(TableData data, AsciiBorderStyle style)
     {
         var cols = data.Headers.Count;
@@ -510,8 +519,8 @@ public static class TableTool
 
         var name = string.IsNullOrWhiteSpace(tableName) ? "table_name" : tableName.Trim();
         var sb = new StringBuilder();
-        sb.Append("INSERT INTO ").Append(name)
-          .Append(" (").Append(string.Join(", ", data.Headers)).Append(")\nVALUES\n");
+        sb.Append("INSERT INTO ").Append(QuoteSqlIdentifier(name))
+          .Append(" (").Append(string.Join(", ", data.Headers.Select(QuoteSqlIdentifier))).Append(")\nVALUES\n");
 
         for (var r = 0; r < data.Rows.Count; r++)
         {
@@ -523,7 +532,29 @@ public static class TableTool
         return sb.ToString().TrimEnd('\n');
     }
 
+    /// <summary>Every cell is emitted as a quoted string literal with single quotes doubled — note this
+    /// means an empty cell becomes '' (an empty string), never SQL NULL, and a source JSON null (which
+    /// the string-based <see cref="TableData"/> model already collapsed to "") is likewise indistinguishable
+    /// from an empty string here.</summary>
     private static string SqlLiteral(string s) => "'" + s.Replace("'", "''") + "'";
+
+    /// <summary>Leaves a plain identifier (ASCII letters/digits/underscore, not starting with a digit)
+    /// untouched; anything else — spaces, quotes, brackets, reserved punctuation — is wrapped in ANSI
+    /// double quotes with embedded double quotes doubled, so a column header like <c>first name</c> or
+    /// <c>a"b</c> or <c>[id]</c> can't produce broken (or injected) SQL. Dialect note: SQL Server uses
+    /// <c>[ ]</c> and MySQL backticks; the ANSI double-quote form is the portable default.</summary>
+    private static string QuoteSqlIdentifier(string name) =>
+        IsPlainSqlIdentifier(name) ? name : "\"" + name.Replace("\"", "\"\"") + "\"";
+
+    private static bool IsPlainSqlIdentifier(string s)
+    {
+        if (s.Length == 0 || char.IsAsciiDigit(s[0]))
+            return false;
+        foreach (var c in s)
+            if (!(char.IsAsciiLetterOrDigit(c) || c == '_'))
+                return false;
+        return true;
+    }
 
     // ---------------- LaTeX ----------------
 

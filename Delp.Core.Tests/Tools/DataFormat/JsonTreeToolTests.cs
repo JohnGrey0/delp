@@ -196,6 +196,53 @@ public class JsonTreeToolTests
     }
 
     [Fact]
+    public void SearchAll_ReturnsSamePathsAsSearch_AndSameChainAsFindFirst()
+    {
+        using var tree = JsonTreeTool.Load(Doc);
+        var combined = JsonTreeTool.SearchAll(tree, "a", max: 500);
+        var paths = JsonTreeTool.Search(tree, "a", max: 500);
+        var chain = JsonTreeTool.FindFirstMatchChain(tree, "a");
+
+        Assert.Equal(paths, combined.Paths);
+        Assert.NotNull(combined.FirstChain);
+        Assert.Equal(chain!.Select(n => n.Path), combined.FirstChain!.Select(n => n.Path));
+    }
+
+    [Fact]
+    public void SearchAll_NoMatch_HasEmptyPathsAndNullChain()
+    {
+        using var tree = JsonTreeTool.Load(Doc);
+        var result = JsonTreeTool.SearchAll(tree, "nowhere", max: 500);
+        Assert.Empty(result.Paths);
+        Assert.Null(result.FirstChain);
+    }
+
+    [Fact]
+    public void FindFirstMatchChain_DeepInLargeArray_ReturnsMinimalAncestorChainOnly()
+    {
+        // A 20k-element array whose last element carries the needle. The reveal chain the view walks
+        // must be just root -> matching-element -> matching-leaf (3 nodes) — it must never need the
+        // 20k siblings materialized to describe the path to the match.
+        var sb = new System.Text.StringBuilder();
+        sb.Append('[');
+        for (var i = 0; i < 20000; i++)
+        {
+            if (i > 0) sb.Append(',');
+            var name = i == 19999 ? "zzz-needle-zzz" : "item" + i;
+            sb.Append("{\"name\":\"").Append(name).Append("\"}");
+        }
+        sb.Append(']');
+
+        using var tree = JsonTreeTool.Load(sb.ToString());
+        var chain = JsonTreeTool.FindFirstMatchChain(tree, "needle");
+
+        Assert.NotNull(chain);
+        Assert.Equal(3, chain!.Count);
+        Assert.Equal("$", chain[0].Path);
+        Assert.Equal("$[19999].name", chain[^1].Path);
+    }
+
+    [Fact]
     public void DeepNesting_1000Levels_DoesNotStackOverflowOnLoadOrSearch()
     {
         var json = new string('[', 1000) + "\"deep\"" + new string(']', 1000);

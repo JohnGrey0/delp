@@ -47,8 +47,19 @@ public partial class JsonTreeView : UserControl
         InputHost.Child = _input;
         _input.TextChanged += (_, _) => Debounce(_loadDebounce);
 
+        // Coming back to a cached view whose tree we disposed on Unloaded: rebuild it from the input
+        // still sitting in the editor so the TREE tab isn't left showing stale nodes over a disposed
+        // document (touching one of those throws ObjectDisposedException deep in WPF's expand path).
+        Loaded += (_, _) =>
+        {
+            if (_tree is null && !string.IsNullOrWhiteSpace(_input.Text))
+                _ = LoadAsync();
+        };
+
         // Stop pending work when navigated away, and dispose the current document so a
-        // cached-but-hidden view doesn't keep holding onto (or reading from) it.
+        // cached-but-hidden view doesn't keep holding onto (or reading from) it. Bumping the request
+        // id first invalidates any parse Task.Run still in flight; ResetTreeUi drops the whole VM
+        // tree so nothing left on screen can call Children() on a node into the now-disposed document.
         Unloaded += (_, _) =>
         {
             _loadDebounce.Stop();
@@ -56,6 +67,7 @@ public partial class JsonTreeView : UserControl
             _loadRequestId++;
             _tree?.Dispose();
             _tree = null;
+            ResetTreeUi();
         };
     }
 
@@ -123,7 +135,7 @@ public partial class JsonTreeView : UserControl
             return;
         }
 
-        _rootVm = new JsonNodeVM(tree.Root);
+        _rootVm = new JsonNodeVM(tree.Root, requestId);
         Tree.ItemsSource = new[] { _rootVm };
         _nodesShown = 1;
         UpdateNodesShownStatus();
@@ -154,11 +166,19 @@ public partial class JsonTreeView : UserControl
     /// document actually gets walked beyond the root, and only as far as the user expands.</summary>
     private void LoadChildrenInto(JsonNodeVM vm)
     {
+        // Generation guard: only ever walk a node that belongs to the *current* tree. A VM built for
+        // an earlier document holds a JsonElement into a JsonDocument we've since disposed, so calling
+        // Children() on it throws ObjectDisposedException — which WPF swallows silently inside the
+        // expand/measure pass. Reassigning ItemsSource on reload can still deliver an Expanded event
+        // to a not-yet-torn-down old container, so this is the line that actually makes reload safe.
+        if (vm.IsPlaceholder || vm.Generation != _loadRequestId)
+            return;
+
         vm.ChildrenLoaded = true;
         vm.Children.Clear();
         foreach (var child in vm.Node.Children())
         {
-            vm.Children.Add(new JsonNodeVM(child));
+            vm.Children.Add(new JsonNodeVM(child, vm.Generation));
             _nodesShown++;
         }
         UpdateNodesShownStatus();
@@ -184,18 +204,22 @@ public partial class JsonTreeView : UserControl
             return;
         }
 
-        var results = JsonTreeTool.Search(_tree, query, max: 500);
-        SearchStatusText.Text = results.Count switch
+        // One walk, not two. SearchAll returns both the match paths (for the count) and the
+        // root-to-first-match chain (to reveal it). This runs synchronously on the UI thread — over a
+        // ~60k-node document a full no-match walk measures ~95 ms, acceptable behind the 300 ms
+        // debounce, and staying on the UI thread means it can't race the reload path's Dispose the way
+        // a background search would. Calling Search + FindFirstMatchChain separately walked it twice.
+        var result = JsonTreeTool.SearchAll(_tree, query, max: 500);
+        SearchStatusText.Text = result.Paths.Count switch
         {
             0 => "No matches",
             500 => "500+ matches",
             1 => "1 match",
-            _ => $"{results.Count} matches",
+            _ => $"{result.Paths.Count} matches",
         };
 
-        var chain = JsonTreeTool.FindFirstMatchChain(_tree, query);
-        if (chain is not null)
-            RevealChain(chain);
+        if (result.FirstChain is not null)
+            RevealChain(result.FirstChain);
     }
 
     /// <summary>Expands every ancestor (materializing children as needed) down to the first match
@@ -220,8 +244,15 @@ public partial class JsonTreeView : UserControl
         }
 
         var target = current;
-        // The IsExpanded changes above only take visual effect on the next layout pass; defer the
-        // container lookup until after that so BringIntoView has something realized to act on.
+        // Fill the detail row straight from the node's cached strings. The target can sit deep inside a
+        // large, virtualized array whose container is never realized, so SelectedItemChanged may never
+        // fire for it — populate PATH/POINTER/VALUE directly rather than depending on selection.
+        ShowDetail(target.Node);
+
+        // Selecting and scrolling still need a realized container; the IsExpanded changes above only
+        // take visual effect on the next layout pass, so defer the lookup. If the target is virtualized
+        // away, ContainerFromItem returns null and we simply don't scroll — we deliberately do NOT walk
+        // or realize its (up to tens of thousands of) siblings to reach it, so virtualization holds.
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
             if (Tree.ItemContainerGenerator.ContainerFromItem(target) is TreeViewItem item)
@@ -258,17 +289,28 @@ public partial class JsonTreeView : UserControl
     {
         private bool _isExpanded;
 
-        public JsonNodeVM(JsonTreeNode node)
+        public JsonNodeVM(JsonTreeNode node, int generation)
         {
             Node = node;
+            Generation = generation;
             if (node.ChildCount > 0)
-                Children.Add(new JsonNodeVM());
+                Children.Add(new JsonNodeVM(generation));
         }
 
-        /// <summary>Placeholder constructor — <see cref="Node"/> must never be read when <see cref="IsPlaceholder"/> is true.</summary>
-        private JsonNodeVM() => Node = null!;
+        /// <summary>Placeholder constructor — <see cref="Node"/> must never be read when <see cref="IsPlaceholder"/> is true.
+        /// Carries the same generation as its parent so the guard in LoadChildrenInto stays uniform.</summary>
+        private JsonNodeVM(int generation)
+        {
+            Node = null!;
+            Generation = generation;
+        }
 
         public JsonTreeNode Node { get; }
+
+        /// <summary>The load-request id of the tree this VM was built for; a VM whose generation no
+        /// longer matches the view's current request id is stale and must not be walked (its backing
+        /// JsonDocument may be disposed).</summary>
+        public int Generation { get; }
 
         public bool IsPlaceholder => Node is null;
 

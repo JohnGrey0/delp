@@ -185,6 +185,11 @@ public sealed class JsonTree : IDisposable
     }
 }
 
+/// <summary>Result of a single search walk: every matched node's <see cref="JsonTreeNode.Path"/> (up
+/// to the requested cap) plus the root-to-first-match chain, if any — see
+/// <see cref="JsonTreeTool.SearchAll"/>.</summary>
+public sealed record JsonSearchResult(IReadOnlyList<string> Paths, IReadOnlyList<JsonTreeNode>? FirstChain);
+
 /// <summary>Parses and lazily explores a JSON document as a tree, without ever walking the whole
 /// thing up front — the point is that opening a large document stays fast.</summary>
 public static class JsonTreeTool
@@ -221,25 +226,35 @@ public static class JsonTreeTool
     /// <summary>Case-insensitive substring search over keys and leaf values. Iterative (an explicit
     /// stack, not C# recursion) so it's safe over very deeply nested documents; stops as soon as
     /// <paramref name="max"/> matches are found.</summary>
-    public static IReadOnlyList<string> Search(JsonTree tree, string query, int max = 500)
-    {
-        ArgumentNullException.ThrowIfNull(tree);
-        var results = new List<string>(Math.Min(max, 64));
-        foreach (var chain in SearchChains(tree, query, max))
-            results.Add(chain[^1].Path);
-        return results;
-    }
+    public static IReadOnlyList<string> Search(JsonTree tree, string query, int max = 500) =>
+        SearchAll(tree, query, max).Paths;
 
     /// <summary>Same traversal/matching as <see cref="Search"/>, but returns the full root-to-match
     /// node chain for the first hit so a caller (the tree view) can expand every ancestor and reveal
     /// it — reusing the exact same matching logic keeps "which node gets revealed" and "how many
     /// matches were found" from ever disagreeing. Null when there is no match.</summary>
-    public static IReadOnlyList<JsonTreeNode>? FindFirstMatchChain(JsonTree tree, string query)
+    public static IReadOnlyList<JsonTreeNode>? FindFirstMatchChain(JsonTree tree, string query) =>
+        SearchAll(tree, query, max: 1).FirstChain;
+
+    /// <summary>
+    /// Combines what <see cref="Search"/> and <see cref="FindFirstMatchChain"/> each compute into a
+    /// single tree walk. A caller (the tree view) that needs both the match count/paths *and* the
+    /// chain to reveal the first hit should call this once instead of calling both of those — over a
+    /// large tree (tens of thousands of nodes) doing two independent full walks back-to-back roughly
+    /// doubles a synchronous, UI-thread search's cost for no benefit, since both walks visit the same
+    /// nodes in the same order.
+    /// </summary>
+    public static JsonSearchResult SearchAll(JsonTree tree, string query, int max = 500)
     {
         ArgumentNullException.ThrowIfNull(tree);
-        foreach (var chain in SearchChains(tree, query, 1))
-            return chain;
-        return null;
+        var paths = new List<string>(Math.Min(max, 64));
+        List<JsonTreeNode>? firstChain = null;
+        foreach (var chain in SearchChains(tree, query, max))
+        {
+            firstChain ??= chain;
+            paths.Add(chain[^1].Path);
+        }
+        return new JsonSearchResult(paths, firstChain);
     }
 
     private sealed class ChainLink(JsonTreeNode node, ChainLink? parent)
