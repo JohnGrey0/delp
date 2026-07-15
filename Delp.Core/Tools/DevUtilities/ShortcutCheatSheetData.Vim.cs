@@ -58,6 +58,7 @@ public static partial class ShortcutCheatSheetData
         new("Delete inside word/quotes/brackets (text object)", "Editing", "di{obj}", "e.g. diw, di\", dib."),
         new("Change line", "Editing", "cc"),
         new("Change word", "Editing", "cw"),
+        new("Change inside word/quotes/brackets (text object)", "Editing", "ci{obj}", "e.g. ciw, ci\", cib."),
         new("Change to end of line", "Editing", "C"),
         new("Replace single character", "Editing", "r{char}"),
         new("Enter Replace mode (overtype)", "Editing", "R"),

@@ -107,4 +107,25 @@ public class GitignoreToolTests
 
     private static int CountOccurrencesOfLine(string text, string exactLine) =>
         text.Split('\n').Count(line => line.TrimEnd('\r') == exactLine);
+
+    [Fact]
+    public void MacOsTemplate_IconPattern_ContainsLiteralCarriageReturn()
+    {
+        // Upstream macOS.gitignore ignores the custom-folder-icon file via a one-char glob class
+        // ("Icon[<CR>]") because the real file name on disk ends with an actual carriage-return byte,
+        // not the two visible characters '\' and 'r'. Confirm the embedded template really contains
+        // that raw 0x0D byte and not an escaped-looking placeholder.
+        var macOs = GitignoreData.All.Single(t => t.Name == "macOS");
+        Assert.Contains("Icon[\r]", macOs.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compose_MacOsIconPattern_PreservesLiteralCarriageReturnThroughCompose()
+    {
+        // Compose() trims each line's trailing whitespace and re-splits on '\n' — guard against a
+        // regression where that pipeline strips or mangles the embedded CR (it sits mid-line inside
+        // "Icon[<CR>]", not at the line's edge, so naive trimming must not touch it).
+        var result = GitignoreTool.Compose(["macOS"]);
+        Assert.Contains("Icon[\r]", result, StringComparison.Ordinal);
+    }
 }

@@ -100,4 +100,27 @@ public class ShortcutCheatSheetDataTests
     {
         Assert.Empty(ShortcutCheatSheetData.Search("Vim", "xyzzy-not-a-real-shortcut"));
     }
+
+    [Fact]
+    public void Search_ChangeInnerWord_FindsVimCiw()
+    {
+        // ciw (change inner word) is one of the most common Vim text-object idioms; it must appear
+        // alongside its delete counterpart (diw) and not just be implied by "cw" (which behaves
+        // differently: cw stops at the end of the current word from the cursor, ciw always affects
+        // the whole word regardless of cursor position within it).
+        var results = ShortcutCheatSheetData.Search("Vim", "ciw");
+        Assert.Contains(results, e => e.Keys == "ci{obj}");
+    }
+
+    [Fact]
+    public void VsCode_ClearTerminal_DoesNotClaimAWindowsDefaultBinding()
+    {
+        // Regression: this used to list "Ctrl+K" as the Windows default for
+        // workbench.action.terminal.clear. That's actually the macOS-only binding (VS Code registers
+        // it with `primary: 0` — i.e. no default — on Windows/Linux); shipping it as a Windows default
+        // is misinformation for the exact audience this tool serves.
+        var entry = ShortcutCheatSheetData.For("VS Code").Single(e => e.Action == "Clear terminal");
+        Assert.NotEqual("Ctrl+K", entry.Keys);
+        Assert.Contains("macOS", entry.Notes ?? "", StringComparison.Ordinal);
+    }
 }

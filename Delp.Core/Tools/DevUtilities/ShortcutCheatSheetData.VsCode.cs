@@ -103,6 +103,6 @@ public static partial class ShortcutCheatSheetData
         new("Split terminal", "Integrated Terminal", "Ctrl+Shift+5"),
         new("Focus next / previous terminal", "Integrated Terminal", "Alt+Right / Alt+Left", "Only while the terminal panel has focus."),
         new("Scroll terminal up / down a line", "Integrated Terminal", "Ctrl+Up / Ctrl+Down"),
-        new("Clear terminal", "Integrated Terminal", "Ctrl+K", "Only while the terminal panel has focus."),
+        new("Clear terminal", "Integrated Terminal", "No default (Windows)", "workbench.action.terminal.clear has no default Windows/Linux binding — that's Cmd+K on macOS only. Run \"Terminal: Clear\" from the Command Palette or bind your own key."),
     ];
 }
