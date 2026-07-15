@@ -1,0 +1,144 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.ShortcutCheatSheetView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="ShortcutRowContainer" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <DataTemplate x:Key="ShortcutRowTemplate">
+            <Border Style="{StaticResource Card}" Padding="12" Margin="0,0,4,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="{Binding Action}"
+                               FontSize="13.5"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource Brush.Fg0}" />
+
+                    <Border Grid.Row="0" Grid.Column="1"
+                            Background="{StaticResource Brush.AccentSoft}"
+                            CornerRadius="4"
+                            Padding="8,3"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Keys}"
+                                   FontFamily="{StaticResource Font.Mono}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource Brush.Fg0}" />
+                    </Border>
+
+                    <Button Grid.Row="0" Grid.Column="2"
+                            Style="{StaticResource Button.Icon}"
+                            Content="Copy"
+                            Margin="8,0,0,0"
+                            Click="CopyKeys_Click" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                               Text="{Binding Category}"
+                               Margin="0,4,0,0"
+                               Style="{StaticResource Text.Section}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                               Text="{Binding Notes}"
+                               Margin="0,4,0,0"
+                               HorizontalAlignment="Right"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Sub}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Notes}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel Margin="16">
+
+        <TextBox x:Name="SearchBox"
+                 DockPanel.Dock="Top"
+                 Margin="0,0,0,10"
+                 Style="{StaticResource TextBox.Search}"
+                 Tag="Search actions or keys…"
+                 TextChanged="Filter_Changed" />
+
+        <TabControl x:Name="EditorTabs" SelectionChanged="Tab_Changed">
+            <TabItem Header="VIM" Tag="Vim">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="VimStatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Style="{StaticResource Text.Sub}" />
+                    <!--
+                        Virtualizing ListBox, not an ItemsControl-in-a-ScrollViewer: with a hundred-plus
+                        rows per tab, a plain ItemsControl instantiates every row's visual tree up front.
+                        ListBox's default panel is a VirtualizingStackPanel and the theme sets
+                        VirtualizingPanel.ScrollUnit=Pixel on every ListBox, so only on-screen rows get
+                        realized — this ListBox is the scroll owner for its tab; it must not be wrapped
+                        in another ScrollViewer.
+                    -->
+                    <ListBox x:Name="VimList"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource ShortcutRowTemplate}"
+                             ItemContainerStyle="{StaticResource ShortcutRowContainer}" />
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="VS CODE" Tag="VS Code">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="VsCodeStatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Style="{StaticResource Text.Sub}" />
+                    <ListBox x:Name="VsCodeList"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource ShortcutRowTemplate}"
+                             ItemContainerStyle="{StaticResource ShortcutRowContainer}" />
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="VISUAL STUDIO" Tag="Visual Studio">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="VisualStudioStatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Style="{StaticResource Text.Sub}" />
+                    <ListBox x:Name="VisualStudioList"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource ShortcutRowTemplate}"
+                             ItemContainerStyle="{StaticResource ShortcutRowContainer}" />
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="JETBRAINS" Tag="JetBrains">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="JetBrainsStatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Style="{StaticResource Text.Sub}" />
+                    <ListBox x:Name="JetBrainsList"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource ShortcutRowTemplate}"
+                             ItemContainerStyle="{StaticResource ShortcutRowContainer}" />
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="TERMINAL" Tag="Terminal">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock x:Name="TerminalStatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Style="{StaticResource Text.Sub}" />
+                    <ListBox x:Name="TerminalList"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource ShortcutRowTemplate}"
+                             ItemContainerStyle="{StaticResource ShortcutRowContainer}" />
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+
+    </DockPanel>
+</UserControl>
