@@ -1,0 +1,96 @@
+<UserControl x:Class="Delp.App.Tools.DevUtilities.CodeShotView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="16">
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <StackPanel Margin="0,0,14,8">
+                <TextBlock Style="{StaticResource Text.Section}" Text="LANGUAGE" Margin="0,0,0,4" />
+                <ComboBox x:Name="LanguageCombo" MinWidth="110" SelectionChanged="Combo_Changed" />
+            </StackPanel>
+            <StackPanel Margin="0,0,14,8">
+                <TextBlock Style="{StaticResource Text.Section}" Text="THEME" Margin="0,0,0,4" />
+                <ComboBox x:Name="ThemeCombo" MinWidth="100" SelectionChanged="Combo_Changed" />
+            </StackPanel>
+            <StackPanel Margin="0,0,14,8">
+                <TextBlock Style="{StaticResource Text.Section}" Text="PADDING" Margin="0,0,0,4" />
+                <ComboBox x:Name="PaddingCombo" MinWidth="70" SelectionChanged="Combo_Changed">
+                    <ComboBoxItem Content="S" Tag="Small" />
+                    <ComboBoxItem Content="M" Tag="Medium" IsSelected="True" />
+                    <ComboBoxItem Content="L" Tag="Large" />
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Margin="0,0,14,8">
+                <TextBlock Style="{StaticResource Text.Section}" Text="SCALE" Margin="0,0,0,4" />
+                <!-- Export-only: the live preview always rasterizes at 1x (see CodeShotView.Render),
+                     so this has nothing to redraw and isn't wired to the debounce. -->
+                <ComboBox x:Name="ScaleCombo" MinWidth="60">
+                    <ComboBoxItem Content="1×" Tag="1" IsSelected="True" />
+                    <ComboBoxItem Content="2×" Tag="2" />
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,14,8" VerticalAlignment="Bottom">
+                <CheckBox x:Name="ChromeBox"
+                          Content="Window chrome"
+                          IsChecked="True"
+                          Margin="0,0,10,0"
+                          Checked="Chrome_Changed"
+                          Unchecked="Chrome_Changed" />
+                <TextBox x:Name="TitleBox"
+                         Width="120"
+                         Style="{StaticResource TextBox.Search}"
+                         Tag="untitled"
+                         TextChanged="Option_Changed" />
+            </StackPanel>
+            <CheckBox x:Name="LineNumbersBox"
+                      Content="Line numbers"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,8"
+                      Checked="Option_Changed"
+                      Unchecked="Option_Changed" />
+        </WrapPanel>
+
+        <TextBlock x:Name="ErrorText"
+                   DockPanel.Dock="Bottom"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Error}"
+                   Visibility="Collapsed" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1.3*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Margin="0,0,0,6"
+                       Style="{StaticResource Text.Section}"
+                       Text="CODE" />
+            <TextBox x:Name="CodeBox"
+                     Grid.Row="1"
+                     Style="{StaticResource TextBox.Mono}"
+                     AcceptsTab="True"
+                     TextChanged="CodeBox_TextChanged" />
+
+            <DockPanel Grid.Row="2" Margin="0,14,0,6">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="SaveBtn" Content="Save PNG…" Margin="0,0,8,0" Click="Save_Click" />
+                    <Button x:Name="CopyImageBtn" Content="Copy image" Click="CopyImage_Click" />
+                </StackPanel>
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Section}" Text="PREVIEW" />
+            </DockPanel>
+            <Border Grid.Row="3" Style="{StaticResource Card}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Image x:Name="PreviewImage"
+                           Margin="12"
+                           Stretch="None"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Top"
+                           SnapsToDevicePixels="True" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>
