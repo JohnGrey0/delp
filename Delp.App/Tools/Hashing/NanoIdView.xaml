@@ -139,36 +139,53 @@
                                  Text="01AN4Z07BY79KA1307SR9X4MV3&#10;507f1f77bcf86cd799439011&#10;175928847299117063" />
 
                         <TextBlock Grid.Row="2" Margin="0,14,0,6" Style="{StaticResource Text.Section}" Text="RESULTS" />
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl x:Name="DecodeResultsList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="12">
-                                            <StackPanel>
-                                                <DockPanel>
-                                                    <TextBlock DockPanel.Dock="Right"
-                                                               VerticalAlignment="Center"
-                                                               Style="{StaticResource Text.Section}"
-                                                               Text="{Binding TypeLabel}" />
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               Style="{StaticResource Text.Mono}"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               Text="{Binding Input}" />
-                                                </DockPanel>
-                                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Sub}" Text="{Binding TimestampText}" />
-                                                <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding FieldLines}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <TextBlock Style="{StaticResource Text.Sub}" Text="{Binding}" />
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+
+                        <!-- A ListBox (not a plain ItemsControl in a ScrollViewer) so the row panel
+                             actually virtualizes: only on-screen rows get realized, which keeps a
+                             large paste (thousands of ids, one per line) cheap to render and scroll. -->
+                        <ListBox x:Name="DecodeResultsList"
+                                 Grid.Row="3"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 ScrollViewer.CanContentScroll="True"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.ScrollUnit="Pixel">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="12">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right"
+                                                           VerticalAlignment="Center"
+                                                           Style="{StaticResource Text.Section}"
+                                                           Text="{Binding TypeLabel}" />
+                                                <TextBlock VerticalAlignment="Center"
+                                                           Style="{StaticResource Text.Mono}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Input}" />
+                                            </DockPanel>
+                                            <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Sub}" Text="{Binding TimestampText}" />
+                                            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding FieldLines}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Style="{StaticResource Text.Sub}" Text="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
                 </DockPanel>
             </TabItem>

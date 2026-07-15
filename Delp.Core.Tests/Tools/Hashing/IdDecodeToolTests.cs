@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Delp.Core.Tools.Hashing;
 
 namespace Delp.Core.Tests.Tools.Hashing;
@@ -77,5 +78,48 @@ public class IdDecodeToolTests
     public void Decode_UnrecognizedFormat_Throws()
     {
         Assert.Throws<FormatException>(() => IdDecodeTool.Decode("not-an-id-at-all!!", SnowflakeTool.DiscordEpochMs));
+    }
+
+    [Fact]
+    public void Decode_24CharHexString_IsObjectIdNotUlid()
+    {
+        // Detector ambiguity rule (the mirror image of the 26-char case below): a 24-character
+        // string made entirely of Crockford-safe hex digits has ObjectId's length (24), not
+        // ULID's (26) — it must decode as an ObjectId, never attempted as a ULID.
+        var hex24 = string.Concat(Enumerable.Repeat("0123456789ABCDEF", 2))[..24];
+        Assert.Equal(24, hex24.Length);
+        var result = IdDecodeTool.Decode(hex24, SnowflakeTool.DiscordEpochMs);
+        Assert.Equal(DetectedIdKind.ObjectId, result.Kind);
+    }
+
+    [Theory]
+    [InlineData("99999999999999999999")] // 20 digits: longer than any 64-bit snowflake can be
+    [InlineData("9999999999999999999")] // 19 digits but > long.MaxValue (9223372036854775807)
+    public void Decode_NumericStringTooBigForSnowflake_ThrowsInsteadOfMisclassifying(string input)
+    {
+        // Must not crash (e.g. on an unhandled OverflowException) and must not silently produce
+        // a wrapped/truncated Snowflake — there is no valid interpretation, so it should report
+        // "no format matched" like any other unrecognized input.
+        var ex = Assert.Throws<FormatException>(() => IdDecodeTool.Decode(input, SnowflakeTool.DiscordEpochMs));
+        Assert.Contains("Could not detect", ex.Message);
+    }
+
+    /// <summary>
+    /// Regression guard for the DECODE tab's "paste thousands of ids" scenario: Decode() must stay
+    /// cheap per line so a large paste doesn't itself become the bottleneck (the view additionally
+    /// debounces the decode pass and virtualizes the results list — see NanoIdView).
+    /// </summary>
+    [Fact(Timeout = 10_000)]
+    public void Decode_TenThousandLines_CompletesQuickly()
+    {
+        const int count = 10_000;
+        var ids = Enumerable.Range(0, count).Select(_ => UlidTool.Generate()).ToList();
+
+        var sw = Stopwatch.StartNew();
+        foreach (var id in ids)
+            IdDecodeTool.Decode(id, SnowflakeTool.DiscordEpochMs);
+        sw.Stop();
+
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(2), $"Decoding {count} ids took {sw.Elapsed}, expected well under 2s.");
     }
 }

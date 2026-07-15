@@ -179,8 +179,8 @@ public partial class ColorConvertView : UserControl
         var fg = ColorTool.Parse(FgBox.Text);
         var bg = ColorTool.Parse(BgBox.Text);
 
-        var fgBrush = new SolidColorBrush(Color.FromRgb(fg.R, fg.G, fg.B));
-        var bgBrush = new SolidColorBrush(Color.FromRgb(bg.R, bg.G, bg.B));
+        var fgBrush = RgbBrush(fg);
+        var bgBrush = RgbBrush(bg);
         FgSwatch.Background = fgBrush;
         BgSwatch.Background = bgBrush;
 
@@ -252,7 +252,7 @@ public partial class ColorConvertView : UserControl
     private void ApplyVision()
     {
         var c = ColorTool.Parse(VisionBox.Text);
-        VisionSwatch.Background = new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B));
+        VisionSwatch.Background = RgbBrush(c);
 
         RenderSimulation(ColorVisionKind.Protanopia, ProtanopiaSwatch, ProtanopiaHex, c);
         RenderSimulation(ColorVisionKind.Deuteranopia, DeuteranopiaSwatch, DeuteranopiaHex, c);
@@ -263,9 +263,13 @@ public partial class ColorConvertView : UserControl
     private static void RenderSimulation(ColorVisionKind kind, Border swatch, TextBlock hexText, ParsedColor c)
     {
         var simulated = ColorVisionTool.Simulate(c, kind);
-        swatch.Background = new SolidColorBrush(Color.FromRgb(simulated.R, simulated.G, simulated.B));
+        swatch.Background = RgbBrush(simulated);
         hexText.Text = ColorTool.ToHex(simulated, alpha: false);
     }
+
+    /// <summary>Shared swatch-brush builder — CONVERT, CONTRAST, and VISION all render an opaque
+    /// R/G/B swatch this same way; kept in one place instead of each tab re-writing the literal.</summary>
+    private static SolidColorBrush RgbBrush(ParsedColor c) => new(Color.FromRgb(c.R, c.G, c.B));
 
     /// <summary>Runs a VISION-tab update with its own reentrancy guard and error banner.</summary>
     private void RunVision(Action apply)
@@ -291,6 +295,6 @@ public partial class ColorConvertView : UserControl
 
     private sealed record HistoryEntry(byte R, byte G, byte B, string Hex)
     {
-        public Brush SwatchBrush { get; } = new SolidColorBrush(Color.FromRgb(R, G, B));
+        public Brush SwatchBrush { get; } = RgbBrush(new ParsedColor(R, G, B, 255));
     }
 }

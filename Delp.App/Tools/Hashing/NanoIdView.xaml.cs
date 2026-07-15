@@ -1,7 +1,7 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Delp.App.Infrastructure;
 using Delp.Core.Tools.Hashing;
 
@@ -16,14 +16,25 @@ public partial class NanoIdView : UserControl
 
     private readonly ErrorBox _error;
     private readonly ErrorBox _decodeError;
-    private readonly ObservableCollection<DecodedRow> _decodeResults = [];
+    private readonly DispatcherTimer _decodeDebounce;
 
     public NanoIdView()
     {
         InitializeComponent();
         _error = new ErrorBox(ErrorText);
         _decodeError = new ErrorBox(DecodeErrorText);
-        DecodeResultsList.ItemsSource = _decodeResults;
+
+        // Decoding is debounced (like every other live-conversion view — see LineSortView,
+        // UnicodeInspectView) so a large paste doesn't re-run the whole-input decode pass once
+        // per keystroke; the results ListBox below is virtualized so the pass's output doesn't
+        // freeze layout either. Together, pasting thousands of ids stays responsive.
+        _decodeDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _decodeDebounce.Tick += (_, _) =>
+        {
+            _decodeDebounce.Stop();
+            RunDecode();
+        };
+
         UpdatePanelVisibility();
         RunDecode();
     }
@@ -173,7 +184,8 @@ public partial class NanoIdView : UserControl
             return;
 
         DecodeCustomEpochPanel.Visibility = Show(DecodeEpochCombo.SelectedIndex == 2);
-        RunDecode();
+        _decodeDebounce.Stop();
+        _decodeDebounce.Start();
     }
 
     private void DecodeInput_Changed(object sender, TextChangedEventArgs e)
@@ -181,7 +193,8 @@ public partial class NanoIdView : UserControl
         if (!IsLoaded)
             return;
 
-        RunDecode();
+        _decodeDebounce.Stop();
+        _decodeDebounce.Start();
     }
 
     private void RunDecode() => _decodeError.Run(() =>
@@ -192,24 +205,32 @@ public partial class NanoIdView : UserControl
             .Where(l => l.Length > 0)
             .ToList();
 
-        _decodeResults.Clear();
         if (lines.Count == 0)
+        {
+            DecodeResultsList.ItemsSource = null;
             return;
+        }
 
         var epoch = ResolveEpoch(DecodeEpochCombo.SelectedIndex, DecodeCustomEpochBox.Text);
 
+        // Built as a plain list and assigned to ItemsSource once — not an ObservableCollection
+        // fed through N individual Add() calls — so a large paste (thousands of lines) triggers
+        // a single UI update instead of thousands of CollectionChanged notifications.
+        var results = new List<DecodedRow>(lines.Count);
         var errors = new List<string>();
         foreach (var line in lines)
         {
             try
             {
-                _decodeResults.Add(new DecodedRow(IdDecodeTool.Decode(line, epoch)));
+                results.Add(new DecodedRow(IdDecodeTool.Decode(line, epoch)));
             }
             catch (Exception ex)
             {
                 errors.Add($"'{line}': {ex.Message}");
             }
         }
+
+        DecodeResultsList.ItemsSource = results;
 
         if (errors.Count > 0)
             throw new FormatException(string.Join(Environment.NewLine, errors));
